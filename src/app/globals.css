@@ -1,26 +1,109 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  --color-background: #faf8f4;
+  --color-surface: #ffffff;
+  --color-surface2: #f3f0ea;
+  --color-border: #e8e2d9;
+  --color-border2: #d4cec4;
+  --color-text: #1c1917;
+  --color-text2: #78716c;
+  --color-text3: #a8a29e;
+  --color-accent: #d4522a;
+  --color-accent2: #bf4520;
+  --color-green: #166534;
+  --color-green-bg: #dcfce7;
+  --color-green-mid: #15803d;
+  --color-amber: #92400e;
+  --color-amber-bg: #fef3c7;
+  --color-blue: #1e40af;
+  --color-blue-bg: #dbeafe;
+  --color-red: #991b1b;
+  --color-red-bg: #fee2e2;
+  --color-accent-bg: #fff9f7;
+  --color-accent-border: #fbc9b5;
+  --color-new-bg: #fff3ef;
+
+  --font-sans: 'DM Sans', sans-serif;
+  --font-serif: 'Fraunces', serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  *:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border2);
+    border-radius: 3px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeO {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@layer utilities {
+  .animate-blink {
+    animation: blink 1.5s infinite;
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease;
+  }
+
+  .animate-fadeO {
+    animation: fadeO 0.2s ease;
+  }
+
+  .animate-slideUp {
+    animation: slideUp 0.25s ease;
+  }
 }
