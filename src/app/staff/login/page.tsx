@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
@@ -11,6 +11,16 @@ export default function StaffLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPin, setShowPin] = useState(false);
+
+  useEffect(() => {
+    const staffData = localStorage.getItem("staff");
+    if (staffData) {
+      try {
+        const { token } = JSON.parse(staffData);
+        if (token) router.replace("/staff/orders");
+      } catch {}
+    }
+  }, [router]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
