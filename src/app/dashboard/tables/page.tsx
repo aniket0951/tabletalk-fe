@@ -53,6 +53,8 @@ export default function TablesPage() {
   const [tblLabel, setTblLabel] = useState("");
   const [tblCap, setTblCap] = useState(4);
   const [tblActive, setTblActive] = useState(true);
+  const [savingTable, setSavingTable] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/api/tables")
@@ -106,6 +108,7 @@ export default function TablesPage() {
 
   async function saveTable() {
     if (!tblLabel.trim()) { alert("Please enter a table name."); return; }
+    setSavingTable(true);
     try {
       if (editingId) {
         const res = await apiFetch(`/api/tables/${editingId}`, {
@@ -123,6 +126,7 @@ export default function TablesPage() {
     } catch {
       showToast("Failed to save table");
     }
+    setSavingTable(false);
     setEditModal(false);
   }
 
@@ -131,12 +135,14 @@ export default function TablesPage() {
     if (!t) return;
     if (t.status === "OCCUPIED") { alert(`${t.label} is currently occupied. Cannot delete.`); return; }
     if (!confirm(`Delete ${t.label}? This will also remove its QR code.`)) return;
+    setDeletingId(id);
     try {
       const res = await apiFetch(`/api/tables/${id}`, { method: "DELETE" });
       if (res.ok) showToast(`🗑 ${t.label} removed.`);
     } catch {
       showToast("Failed to delete table");
     }
+    setDeletingId(null);
   }
 
   return (
@@ -180,7 +186,7 @@ export default function TablesPage() {
                 <div className="mt-[11px] flex gap-[5px]">
                   <button onClick={() => setQrTable(t)} className="flex-1 rounded-md bg-accent py-[5px] text-center text-[10px] font-semibold text-white hover:bg-accent2">QR</button>
                   <button onClick={() => checkSubscription("Edit Table", () => openEditTable(t.id))} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2">Edit</button>
-                  <button onClick={() => deleteTable(t.id)} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-red hover:bg-red-bg hover:border-[rgba(153,27,27,.2)]">✕</button>
+                  <button onClick={() => deleteTable(t.id)} disabled={deletingId === t.id} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-red hover:bg-red-bg hover:border-[rgba(153,27,27,.2)] disabled:opacity-50">{deletingId === t.id ? "..." : "✕"}</button>
                 </div>
               </div>
             ))}
@@ -256,7 +262,7 @@ export default function TablesPage() {
             </div>
             <div className="flex justify-end gap-2 border-t border-border px-5 py-[14px]">
               <button onClick={() => setEditModal(false)} className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text hover:bg-surface2">Cancel</button>
-              <button onClick={saveTable} className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white hover:bg-accent2">{editingId ? "Save Changes" : "Add Table"}</button>
+              <button onClick={saveTable} disabled={savingTable} className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white hover:bg-accent2 disabled:opacity-50">{savingTable ? "Saving..." : editingId ? "Save Changes" : "Add Table"}</button>
             </div>
           </div>
         </div>

@@ -55,6 +55,7 @@ export default function StaffOrdersPage() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [historyFetched, setHistoryFetched] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/api/staff/orders")
@@ -139,6 +140,7 @@ export default function StaffOrdersPage() {
   }
 
   async function handleStatusUpdate(orderId: string, nextStatus: string, label: string) {
+    setUpdatingId(orderId);
     try {
       const res = await apiFetch(`/api/staff/orders/${orderId}`, {
         method: "PATCH",
@@ -152,6 +154,7 @@ export default function StaffOrdersPage() {
     } catch {
       showToast("Failed to update order");
     }
+    setUpdatingId(null);
   }
 
   // Active tab: exclude SETTLED, apply activeFilter
@@ -344,9 +347,10 @@ export default function StaffOrdersPage() {
                   {action && (
                     <button
                       onClick={() => handleStatusUpdate(order.id, action.nextStatus, action.label)}
-                      className={`rounded-lg px-4 py-[7px] text-[12px] font-semibold transition-all ${action.cls}`}
+                      disabled={updatingId === order.id}
+                      className={`rounded-lg px-4 py-[7px] text-[12px] font-semibold transition-all disabled:opacity-50 ${action.cls}`}
                     >
-                      {action.label}
+                      {updatingId === order.id ? "Updating..." : action.label}
                     </button>
                   )}
                 </div>

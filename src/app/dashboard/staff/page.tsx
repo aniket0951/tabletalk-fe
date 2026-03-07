@@ -33,6 +33,7 @@ export default function StaffPage() {
   const [dateFilter, setDateFilter] = useState("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/api/staff")
@@ -109,12 +110,14 @@ export default function StaffPage() {
     const s = staff.find((x) => x.id === id);
     if (!s) return;
     if (!confirm(`Remove ${s.name}? Their order assignments will remain.`)) return;
+    setDeletingId(id);
     try {
       const res = await apiFetch(`/api/staff/${id}`, { method: "DELETE" });
       if (res.ok) showToast(`${s.name} removed`);
     } catch {
       showToast("Failed to remove staff");
     }
+    setDeletingId(null);
   }
 
   const statusGroups = ["NEW", "COOKING", "READY", "BILLED", "SETTLED"];
@@ -242,7 +245,7 @@ export default function StaffPage() {
                   </div>
                   <div className="mt-[11px] flex gap-[5px]">
                     <button onClick={() => checkSubscription("Edit Staff", () => openEdit(s.id))} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2">Edit</button>
-                    <button onClick={() => handleDelete(s.id)} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-red hover:border-[rgba(153,27,27,.2)] hover:bg-red-bg">Remove</button>
+                    <button onClick={() => handleDelete(s.id)} disabled={deletingId === s.id} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-red hover:border-[rgba(153,27,27,.2)] hover:bg-red-bg disabled:opacity-50">{deletingId === s.id ? "Removing..." : "Remove"}</button>
                     <button onClick={() => openStaffOrders(s)} className="flex items-center justify-center rounded-md border border-border bg-transparent px-2 py-[5px] text-[10px] font-semibold text-text2 hover:bg-accent-bg hover:text-accent">→</button>
                   </div>
                 </div>

@@ -40,6 +40,7 @@ export default function OrderDrawer({ order, onClose, onOrderUpdate }: OrderDraw
   const { showToast } = useToast();
   const [staffList, setStaffList] = useState<ApiStaff[]>([]);
   const [assigningStaff, setAssigningStaff] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const orderId = order?.id;
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function OrderDrawer({ order, onClose, onOrderUpdate }: OrderDraw
   const currentIdx = statusOrder.indexOf(currentStatusKey);
 
   async function handleAction(nextStatus: string, label: string) {
+    setActionLoading(true);
     try {
       const res = await apiFetch(`/api/orders/${order!.id}`, {
         method: "PATCH",
@@ -82,6 +84,7 @@ export default function OrderDrawer({ order, onClose, onOrderUpdate }: OrderDraw
     } catch {
       showToast("Failed to update order");
     }
+    setActionLoading(false);
     onClose();
   }
 
@@ -226,8 +229,8 @@ export default function OrderDrawer({ order, onClose, onOrderUpdate }: OrderDraw
         <div className="flex shrink-0 gap-2 border-t border-border bg-surface px-5 py-3">
           {order.status === "NEW" && (
             <>
-              <button onClick={() => handleAction("COOKING", "Marked as cooking")} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green">
-                ✓ Mark Cooking
+              <button onClick={() => handleAction("COOKING", "Marked as cooking")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50">
+                {actionLoading ? "Updating..." : "✓ Mark Cooking"}
               </button>
               <button onClick={onClose} className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2">
                 Reject
@@ -235,18 +238,18 @@ export default function OrderDrawer({ order, onClose, onOrderUpdate }: OrderDraw
             </>
           )}
           {order.status === "COOKING" && (
-            <button onClick={() => handleAction("READY", "Marked as ready")} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green">
-              🔔 Mark Ready
+            <button onClick={() => handleAction("READY", "Marked as ready")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50">
+              {actionLoading ? "Updating..." : "🔔 Mark Ready"}
             </button>
           )}
           {order.status === "READY" && (
-            <button onClick={() => handleAction("BILLED", "Bill sent")} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white hover:bg-accent2">
-              🧾 Send Bill
+            <button onClick={() => handleAction("BILLED", "Bill sent")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white hover:bg-accent2 disabled:opacity-50">
+              {actionLoading ? "Updating..." : "🧾 Send Bill"}
             </button>
           )}
           {order.status === "BILLED" && (
-            <button onClick={() => handleAction("SETTLED", "Marked as settled")} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green">
-              ✅ Mark Settled
+            <button onClick={() => handleAction("SETTLED", "Marked as settled")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50">
+              {actionLoading ? "Updating..." : "✅ Mark Settled"}
             </button>
           )}
           {order.status === "SETTLED" && (

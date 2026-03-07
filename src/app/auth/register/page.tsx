@@ -11,27 +11,35 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const res = await apiFetch("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      const res = await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    if (!res.ok) {
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Registration failed");
+        setLoading(false);
+        return;
+      }
+
       const data = await res.json();
-      setError(data.error || "Registration failed");
-      return;
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      router.push("/onboarding/step1");
+    } catch {
+      setError("Something went wrong");
+      setLoading(false);
     }
-
-    const data = await res.json();
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-
-    router.push("/onboarding/step1");
   }
 
   return (
@@ -97,9 +105,10 @@ export default function RegisterPage() {
           </div>
           <button
             type="submit"
-            className="mt-1 flex w-full items-center justify-center rounded-[10px] bg-accent px-[26px] py-3 text-[15px] font-semibold text-white transition-all hover:bg-accent2"
+            disabled={loading}
+            className="mt-1 flex w-full items-center justify-center rounded-[10px] bg-accent px-[26px] py-3 text-[15px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50"
           >
-            Create account →
+            {loading ? "Creating account..." : "Create account →"}
           </button>
         </form>
 

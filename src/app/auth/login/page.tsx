@@ -10,10 +10,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       const res = await apiFetch("/api/auth/login", {
@@ -23,6 +26,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError("Invalid email or password");
+        setLoading(false);
         return;
       }
 
@@ -32,10 +36,12 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch {
       setError("Something went wrong");
+      setLoading(false);
     }
   }
 
   async function demoLogin(mode: "subscribed" | "noSub") {
+    setDemoLoading(mode);
     try {
       const res = await apiFetch("/api/auth/login", {
         method: "POST",
@@ -44,6 +50,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError("Demo login failed");
+        setDemoLoading(null);
         return;
       }
 
@@ -60,6 +67,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch {
       setError("Demo login failed");
+      setDemoLoading(null);
     }
   }
 
@@ -134,9 +142,10 @@ export default function LoginPage() {
           </div>
           <button
             type="submit"
-            className="flex w-full items-center justify-center rounded-[10px] bg-accent px-6.5 py-3 text-[15px] font-semibold text-white transition-all hover:bg-accent2"
+            disabled={loading}
+            className="flex w-full items-center justify-center rounded-[10px] bg-accent px-6.5 py-3 text-[15px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50"
           >
-            Sign in →
+            {loading ? "Signing in..." : "Sign in →"}
           </button>
         </form>
 
@@ -156,15 +165,17 @@ export default function LoginPage() {
           <div className="flex flex-wrap justify-center gap-[7px]">
             <button
               onClick={() => demoLogin("subscribed")}
-              className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface"
+              disabled={demoLoading !== null}
+              className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface disabled:opacity-50"
             >
-              ✅ With subscription
+              {demoLoading === "subscribed" ? "Loading..." : "✅ With subscription"}
             </button>
             <button
               onClick={() => demoLogin("noSub")}
-              className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface"
+              disabled={demoLoading !== null}
+              className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface disabled:opacity-50"
             >
-              ❌ No subscription
+              {demoLoading === "noSub" ? "Loading..." : "❌ No subscription"}
             </button>
           </div>
         </div>

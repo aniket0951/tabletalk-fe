@@ -22,6 +22,8 @@ export default function MenuPage() {
   const [catEmoji, setCatEmoji] = useState("🍽");
   const [catSaving, setCatSaving] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [savingItem, setSavingItem] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Modal state
   const [miName, setMiName] = useState("");
@@ -67,30 +69,33 @@ export default function MenuPage() {
       alert("Please fill all required fields and select type.");
       return;
     }
+    setSavingItem(true);
     try {
       if (editItemId) {
         const res = await apiFetch(`/api/menu/items/${editItemId}`, {
           method: "PATCH",
           body: JSON.stringify({ name: miName, price: Number(miPrice), type: miType, description: miDesc }),
         });
-        if (!res.ok) { showToast("Failed to update item"); return; }
+        if (!res.ok) { showToast("Failed to update item"); setSavingItem(false); return; }
         showToast(`${miName} updated!`);
       } else {
         const res = await apiFetch("/api/menu/items", {
           method: "POST",
           body: JSON.stringify({ name: miName, price: Number(miPrice), type: miType, description: miDesc, categoryId: miCat }),
         });
-        if (!res.ok) { showToast("Failed to add item"); return; }
+        if (!res.ok) { showToast("Failed to add item"); setSavingItem(false); return; }
         showToast(`${miName} added!`);
       }
       fetchMenu();
     } catch {
       showToast("Failed to save item");
     }
+    setSavingItem(false);
     setModalOpen(false);
   }
 
   async function toggleItem(itemId: string, currentAvailable: boolean) {
+    setTogglingId(itemId);
     try {
       await apiFetch(`/api/menu/items/${itemId}`, {
         method: "PATCH",
@@ -99,6 +104,7 @@ export default function MenuPage() {
     } catch {
       showToast("Failed to toggle item");
     }
+    setTogglingId(null);
   }
 
   function openAddCategory() {
@@ -188,7 +194,8 @@ export default function MenuPage() {
                     </button>
                     <button
                       onClick={() => checkSubscription("Toggle Availability", () => toggleItem(item.id, item.available))}
-                      className={`relative h-[18px] w-8 shrink-0 cursor-pointer rounded-[9px] border-none transition-colors ${item.available ? "bg-green-mid" : "bg-border2"}`}
+                      disabled={togglingId === item.id}
+                      className={`relative h-[18px] w-8 shrink-0 cursor-pointer rounded-[9px] border-none transition-colors ${togglingId === item.id ? "opacity-50" : ""} ${item.available ? "bg-green-mid" : "bg-border2"}`}
                     >
                       <div
                         className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,.2)] transition-[left] ${item.available ? "left-[17px]" : "left-[3px]"}`}
@@ -291,7 +298,7 @@ export default function MenuPage() {
             </div>
             <div className="flex shrink-0 justify-end gap-2 border-t border-border px-5 py-3">
               <button onClick={() => setModalOpen(false)} className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2">Cancel</button>
-              <button onClick={saveItem} className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white transition-all hover:bg-accent2">{editItemId ? "Save Changes" : "Add Item"}</button>
+              <button onClick={saveItem} disabled={savingItem} className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50">{savingItem ? "Saving..." : editItemId ? "Save Changes" : "Add Item"}</button>
             </div>
           </div>
         </div>
