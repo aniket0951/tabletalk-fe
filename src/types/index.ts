@@ -7,11 +7,36 @@ export interface CreateRestaurantReq {
 
 export type ServiceMode = "DINE_IN" | "WALK_IN";
 export type PlanType = "STARTER" | "GROWTH" | "MULTI";
-export type SubscriptionStatus = "TRIAL" | "ACTIVE" | "EXPIRED";
+export type SubscriptionStatus = "TRIAL" | "ACTIVE" | "EXPIRED" | "PENDING" | "HALTED" | "CANCELLED" | "COMPLETED" | "PAUSED";
 export type MenuItemType = "VEG" | "NON_VEG";
 export type TableStatus = "FREE" | "OCCUPIED";
 export type OrderStatus = "NEW" | "COOKING" | "READY" | "BILLED" | "SETTLED";
-export type InvoiceStatus = "PAID" | "PENDING";
+export type InvoiceStatus = "PAID" | "PENDING" | "FAILED" | "REFUNDED";
+
+export interface ApiInvoice {
+  id: string;
+  invoiceNumber: string;
+  subscriptionId: string;
+  amount: number;
+  status: InvoiceStatus;
+  date: string;
+  razorpayPaymentId: string | null;
+  razorpayInvoiceId: string | null;
+  paidAt: string | null;
+  paymentMethod: string | null;
+  currency: string;
+  createdAt: string;
+}
+
+export interface CheckoutResponse {
+  subscriptionId: string;
+  razorpaySubscriptionId: string;
+  razorpayKeyId: string;
+  amount: number;
+  currency: string;
+  name: string;
+  email: string;
+}
 export type StaffRole = "WAITER" | "CAPTAIN";
 
 export interface OrderItem {

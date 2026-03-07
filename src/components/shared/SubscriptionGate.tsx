@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useCallback, ReactNode } from "react";
-import { useSubscriptionPlan } from "@/app/dashboard/layout";
+import { useSubscriptionPlan, useSubscriptionStatus } from "@/app/dashboard/layout";
 import { useToast } from "@/contexts/ToastContext";
+import { apiFetch } from "@/lib/api";
+import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
+import type { CheckoutResponse, PlanType } from "@/types";
 
 const plans = [
-  { key: "STARTER", name: "Starter", price: "₹999/mo", desc: "Up to 500 orders · 1 mode" },
-  { key: "GROWTH", name: "Growth", price: "₹1,499/mo", desc: "Unlimited orders · Both modes" },
-  { key: "MULTI", name: "Multi-Branch", price: "₹3,999/mo", desc: "Up to 5 branches · All features" },
+  { key: "STARTER" as PlanType, name: "Starter", price: "₹999/mo", desc: "Up to 500 orders · 1 mode" },
+  { key: "GROWTH" as PlanType, name: "Growth", price: "₹1,499/mo", desc: "Unlimited orders · Both modes" },
+  { key: "MULTI" as PlanType, name: "Multi-Branch", price: "₹3,999/mo", desc: "Up to 5 branches · All features" },
 ];
 
 interface SubscriptionGateResult {
@@ -17,15 +20,19 @@ interface SubscriptionGateResult {
 
 export function useSubscriptionGate(): SubscriptionGateResult {
   const subscriptionPlan = useSubscriptionPlan();
+  const subscriptionStatus = useSubscriptionStatus();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState("GROWTH");
+  const [selected, setSelected] = useState<PlanType>("GROWTH");
   const [actionLabel, setActionLabel] = useState("");
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const hasActiveSub = subscriptionPlan && (subscriptionStatus === "TRIAL" || subscriptionStatus === "ACTIVE");
 
   const checkSubscription = useCallback(
     (action: string, onAllowed: () => void) => {
-      if (subscriptionPlan) {
+      if (hasActiveSub) {
         onAllowed();
       } else {
         setActionLabel(action);
@@ -33,16 +40,87 @@ export function useSubscriptionGate(): SubscriptionGateResult {
         setOpen(true);
       }
     },
-    [subscriptionPlan]
+    [hasActiveSub]
   );
 
-  function handleActivate() {
-    showToast("🎉 Subscription activated!");
-    setOpen(false);
-    if (pendingAction) {
-      setTimeout(() => {
-        pendingAction();
-      }, 400);
+  async function handleActivate() {
+    setLoading(true);
+
+    // If no subscription at all, start a free trial
+    if (!subscriptionStatus || subscriptionStatus === "EXPIRED" || subscriptionStatus === "CANCELLED") {
+      try {
+        const trialRes = await apiFetch("/api/billing/subscription", {
+          method: "POST",
+          body: JSON.stringify({ plan: selected }),
+        });
+
+        if (trialRes.ok) {
+          showToast("Free trial started!");
+          setOpen(false);
+          setLoading(false);
+          if (pendingAction) setTimeout(() => pendingAction(), 400);
+          return;
+        }
+
+        // If trial creation fails (e.g., already had one), fall through to checkout
+        const data = await trialRes.json();
+        if (data.error !== "Active subscription already exists") {
+          // Try Razorpay checkout instead
+        }
+      } catch {
+        // Fall through to checkout
+      }
+    }
+
+    // Razorpay checkout
+    try {
+      await loadRazorpay();
+
+      const res = await apiFetch("/api/billing/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plan: selected }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || "Checkout failed");
+        setLoading(false);
+        return;
+      }
+
+      const checkout: CheckoutResponse = await res.json();
+
+      openRazorpayCheckout({
+        razorpayKeyId: checkout.razorpayKeyId,
+        razorpaySubscriptionId: checkout.razorpaySubscriptionId,
+        name: checkout.name,
+        email: checkout.email,
+        onSuccess: async (response) => {
+          const verifyRes = await apiFetch("/api/billing/verify", {
+            method: "POST",
+            body: JSON.stringify(response),
+          });
+
+          if (verifyRes.ok) {
+            showToast("Payment successful! Subscription activated.");
+            setOpen(false);
+            if (pendingAction) setTimeout(() => pendingAction(), 400);
+          } else {
+            showToast("Payment verification failed.");
+          }
+          setLoading(false);
+        },
+        onError: () => {
+          showToast("Payment failed.");
+          setLoading(false);
+        },
+        onDismiss: () => {
+          setLoading(false);
+        },
+      });
+    } catch {
+      showToast("Something went wrong.");
+      setLoading(false);
     }
   }
 
@@ -93,9 +171,10 @@ export function useSubscriptionGate(): SubscriptionGateResult {
         <div className="flex flex-col gap-2 border-t border-border px-6 py-4">
           <button
             onClick={handleActivate}
-            className="w-full rounded-lg bg-accent px-[18px] py-[10px] text-[13px] font-semibold text-white transition-all hover:bg-accent2"
+            disabled={loading}
+            className="w-full rounded-lg bg-accent px-[18px] py-[10px] text-[13px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50"
           >
-            Start Free Trial
+            {loading ? "Processing..." : "Subscribe Now"}
           </button>
           <button
             onClick={() => setOpen(false)}
