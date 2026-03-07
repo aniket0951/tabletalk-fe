@@ -20,7 +20,7 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   const res = await fetch(`${API_URL}${cleanPath}`, {
     ...init,
     headers,
-    credentials: "include", // for staff cookies
+    // credentials: "include", // disabled temporarily for open CORS
   });
 
   // Redirect to login on 401
