@@ -51,6 +51,13 @@ export function openRazorpayCheckout(options: RazorpayCheckoutOptions) {
     theme: {
       color: "#e8613a",
     },
+    method: {
+      card: true,
+      upi: true,
+      netbanking: true,
+      wallet: true,
+      emandate: true,
+    },
   });
 
   rzp.on("payment.failed", options.onError);
