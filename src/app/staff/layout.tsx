@@ -31,7 +31,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         return r.json();
       })
       .then((data) => { setStaff(data); setChecking(false); })
-      .catch(() => { router.push("/staff/login"); });
+      .catch(() => { setChecking(false); router.push("/staff/login"); });
   }, [pathname, router]);
 
   async function handleLogout() {

@@ -6,10 +6,21 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
 
   const headers = new Headers(init?.headers);
 
-  // Inject owner auth token from localStorage
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
+  // Inject auth token from localStorage
+  if (!headers.has("Authorization") && typeof window !== "undefined") {
+    const isStaffRoute = cleanPath.startsWith("/staff/");
+    if (isStaffRoute) {
+      const staffData = localStorage.getItem("staff");
+      if (staffData) {
+        try {
+          const { token } = JSON.parse(staffData);
+          if (token) headers.set("Authorization", `Bearer ${token}`);
+        } catch {}
+      }
+    } else {
+      const token = localStorage.getItem("token");
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+    }
   }
 
   // Ensure Content-Type for JSON bodies
@@ -26,7 +37,10 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   // Redirect to login on 401
   if (res.status === 401 && typeof window !== "undefined") {
     const isStaffPath = window.location.pathname.startsWith("/staff");
-    if (!isStaffPath) {
+    if (isStaffPath) {
+      localStorage.removeItem("staff");
+      window.location.href = "/staff/login";
+    } else {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/auth/login";
