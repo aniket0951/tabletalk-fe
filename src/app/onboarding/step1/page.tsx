@@ -40,14 +40,14 @@ export default function OnboardingStep1() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to create restaurant");
+        setError(data.detail || data.error || "Failed to create restaurant");
         setLoading(false);
         return;
       }
 
       router.push("/onboarding/step2");
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
       setLoading(false);
     }
   }
