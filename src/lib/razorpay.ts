@@ -23,12 +23,14 @@ export function loadRazorpay(): Promise<void> {
 
 interface RazorpayCheckoutOptions {
   razorpayKeyId: string;
-  razorpaySubscriptionId: string;
+  razorpayOrderId: string;
+  amount: number;
+  currency: string;
   name: string;
   email: string;
   onSuccess: (response: {
     razorpay_payment_id: string;
-    razorpay_subscription_id: string;
+    razorpay_order_id: string;
     razorpay_signature: string;
   }) => void;
   onError: (error: any) => void;
@@ -38,7 +40,9 @@ interface RazorpayCheckoutOptions {
 export function openRazorpayCheckout(options: RazorpayCheckoutOptions) {
   const rzp = new window.Razorpay({
     key: options.razorpayKeyId,
-    subscription_id: options.razorpaySubscriptionId,
+    order_id: options.razorpayOrderId,
+    amount: options.amount,
+    currency: options.currency,
     name: "TableTalk",
     description: `Subscription for ${options.name}`,
     prefill: {
@@ -50,13 +54,6 @@ export function openRazorpayCheckout(options: RazorpayCheckoutOptions) {
     },
     theme: {
       color: "#e8613a",
-    },
-    method: {
-      card: true,
-      upi: true,
-      netbanking: true,
-      wallet: true,
-      emandate: true,
     },
   });
 

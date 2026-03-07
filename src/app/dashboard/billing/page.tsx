@@ -53,7 +53,9 @@ export default function BillingPage() {
 
       openRazorpayCheckout({
         razorpayKeyId: checkout.razorpayKeyId,
-        razorpaySubscriptionId: checkout.razorpaySubscriptionId,
+        razorpayOrderId: checkout.razorpayOrderId,
+        amount: checkout.amount,
+        currency: checkout.currency,
         name: checkout.name,
         email: checkout.email,
         onSuccess: async (response) => {

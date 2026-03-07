@@ -30,7 +30,7 @@ export interface ApiInvoice {
 
 export interface CheckoutResponse {
   subscriptionId: string;
-  razorpaySubscriptionId: string;
+  razorpayOrderId: string;
   razorpayKeyId: string;
   amount: number;
   currency: string;
