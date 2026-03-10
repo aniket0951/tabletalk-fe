@@ -1,17 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
-import { SocketProvider } from "@/contexts/SocketContext";
+import { SocketProvider, useSocket } from "@/contexts/SocketContext";
 import { apiFetch } from "@/lib/api";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SocketProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </SocketProvider>
+  );
+}
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const [restName, setRestName] = useState("");
   const [plan, setPlan] = useState<string | null>("GROWTH");
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [activeOrderCount, setActiveOrderCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { socket } = useSocket();
+
+  const fetchActiveOrderCount = useCallback(() => {
+    apiFetch("/api/orders")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setActiveOrderCount(data.filter((o: { status: string }) => ["NEW", "COOKING", "READY"].includes(o.status)).length);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const noSub = localStorage.getItem("demo_no_sub");
@@ -22,14 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .then((data) => { if (data?.name) setRestName(data.name); })
       .catch(() => {});
 
-    apiFetch("/api/orders")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setActiveOrderCount(data.filter((o: { status: string }) => ["NEW", "COOKING", "READY"].includes(o.status)).length);
-        }
-      })
-      .catch(() => {});
+    fetchActiveOrderCount();
 
     apiFetch("/api/billing/subscription")
       .then((r) => r.json())
@@ -39,25 +52,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (data?.daysRemaining != null) setDaysRemaining(data.daysRemaining);
       })
       .catch(() => {});
-  }, []);
+  }, [fetchActiveOrderCount]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("order:updated", fetchActiveOrderCount);
+    return () => { socket.off("order:updated", fetchActiveOrderCount); };
+  }, [socket, fetchActiveOrderCount]);
 
   return (
     <div className="flex min-h-screen">
       <Sidebar restName={restName} subscriptionPlan={plan} subscriptionStatus={subscriptionStatus} trialDaysLeft={daysRemaining} activeOrderCount={activeOrderCount} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-1 flex-col md:ml-[220px]">
-        {/* Children receive onMenuToggle via cloneElement workaround —
-            instead we use a context-like approach by wrapping */}
-        <SocketProvider>
-          <SubscriptionPlanContext.Provider value={plan}>
-            <SubscriptionStatusContext.Provider value={subscriptionStatus}>
-              <TrialDaysContext.Provider value={daysRemaining}>
-                <SidebarToggleContext.Provider value={() => setSidebarOpen(true)}>
-                  {children}
-                </SidebarToggleContext.Provider>
-              </TrialDaysContext.Provider>
-            </SubscriptionStatusContext.Provider>
-          </SubscriptionPlanContext.Provider>
-        </SocketProvider>
+        <SubscriptionPlanContext.Provider value={plan}>
+          <SubscriptionStatusContext.Provider value={subscriptionStatus}>
+            <TrialDaysContext.Provider value={daysRemaining}>
+              <SidebarToggleContext.Provider value={() => setSidebarOpen(true)}>
+                {children}
+              </SidebarToggleContext.Provider>
+            </TrialDaysContext.Provider>
+          </SubscriptionStatusContext.Provider>
+        </SubscriptionPlanContext.Provider>
       </div>
     </div>
   );
