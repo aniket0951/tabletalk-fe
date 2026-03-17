@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch } from "@/lib/api";
-import { setCache, TTL } from "@/lib/cache";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import type { ApiCampaign, CampaignType, CampaignCheckoutResponse } from "@/types";
 
@@ -39,9 +38,6 @@ export default function CampaignsPage() {
   const { showToast } = useToast();
   const { gate, checkSubscription } = useSubscriptionGate();
 
-  const [campaigns, setCampaigns] = useState<ApiCampaign[]>([]);
-  const [stats, setStats] = useState({ totalCampaigns: 0, totalReach: 0, totalSpent: 0 });
-  const [loading, setLoading] = useState(true);
 
   // Create flow state
   const [step, setStep] = useState(0); // 0=closed, 1=type, 2=content, 3=review
@@ -52,50 +48,7 @@ export default function CampaignsPage() {
   const [saving, setSaving] = useState(false);
   const [paying, setPaying] = useState(false);
 
-  // Detail view
-  const [detailCampaign, setDetailCampaign] = useState<ApiCampaign | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  async function deleteDraft(id: string) {
-    setDeletingId(id);
-    try {
-      const res = await apiFetch(`/campaigns/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        showToast("Draft deleted");
-        fetchCampaigns();
-      } else {
-        const data = await res.json();
-        showToast(data.debug || data.error || "Failed to delete");
-      }
-    } catch {
-      showToast("Failed to delete");
-    }
-    setDeletingId(null);
-  }
-
-  const fetchCampaigns = useCallback(() => {
-    apiFetch("/campaigns")
-      .then((r) => r.json())
-      .then((data) => {
-        setCampaigns(data.campaigns || []);
-        setStats(data.stats || { totalCampaigns: 0, totalReach: 0, totalSpent: 0 });
-        // Cache for history page so it loads instantly
-        setCache("campaigns_history", data, TTL.FIVE_MIN);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchCampaigns();
-  }, [fetchCampaigns]);
-
-  // Auto-expand guide when no campaigns exist
-  useEffect(() => {
-    if (!loading && campaigns.length === 0) setShowGuide(true);
-  }, [loading, campaigns.length]);
+  const [showGuide, setShowGuide] = useState(true);
 
   function openCreate() {
     setStep(1);
@@ -162,7 +115,6 @@ export default function CampaignsPage() {
           if (verifyRes.ok) {
             showToast("Campaign is being sent!");
             setStep(0);
-            fetchCampaigns();
           } else {
             showToast("Payment verification failed");
           }
@@ -182,20 +134,6 @@ export default function CampaignsPage() {
     }
   }
 
-  async function openDetail(id: string) {
-    setDetailLoading(true);
-    setDetailCampaign(null);
-    try {
-      const res = await apiFetch(`/campaigns/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDetailCampaign(data);
-      }
-    } catch {
-      // silently fail
-    }
-    setDetailLoading(false);
-  }
 
   return (
     <>
@@ -216,19 +154,6 @@ export default function CampaignsPage() {
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="mb-5 grid grid-cols-3 gap-3">
-          {[
-            { label: "Total Campaigns", value: stats.totalCampaigns },
-            { label: "Total Reach", value: stats.totalReach.toLocaleString() },
-            { label: "Total Spent", value: `₹${stats.totalSpent.toFixed(0)}` },
-          ].map((s) => (
-            <div key={s.label} className="rounded-[10px] border border-border bg-surface p-3 shadow-[0_1px_3px_rgba(0,0,0,.07)]">
-              <div className="text-[11px] text-text3">{s.label}</div>
-              <div className="mt-1 font-serif text-lg font-bold">{s.value}</div>
-            </div>
-          ))}
-        </div>
 
         {/* How it works guide */}
         <div className="mb-5 rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
@@ -317,61 +242,20 @@ export default function CampaignsPage() {
           )}
         </div>
 
-        {/* Draft campaign banner */}
-        {!loading && campaigns.filter((c) => c.status === "DRAFT").map((draft) => (
-          <div key={draft.id} className="mb-4 flex items-center justify-between rounded-[10px] border border-amber/30 bg-amber-bg/50 px-4 py-3">
-            <div>
-              <div className="text-[13px] font-semibold">{draft.title}</div>
-              <div className="text-[11px] text-text3">Draft · {draft.audienceCount} customers · ₹{draft.totalCost.toFixed(0)}</div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => deleteDraft(draft.id)}
-                disabled={deletingId === draft.id}
-                className="rounded-lg border border-border bg-transparent px-3 py-[7px] text-[12px] font-semibold text-text3 transition-all hover:bg-red-bg hover:text-red disabled:opacity-50"
-              >
-                {deletingId === draft.id ? "..." : "Delete"}
-              </button>
-              <button
-                onClick={() => {
-                  setCType(draft.type);
-                  setCTitle(draft.title);
-                  setCMessage(draft.message);
-                  setDraftCampaign(draft);
-                  setStep(3);
-                }}
-                className="rounded-lg bg-accent px-3 py-[7px] text-[12px] font-semibold text-white transition-all hover:bg-accent2"
-              >
-                Continue & Pay
-              </button>
-            </div>
-          </div>
-        ))}
-
         {/* View History Link */}
-        {!loading && campaigns.filter((c) => c.status !== "DRAFT").length > 0 && (
-          <Link
-            href="/dashboard/campaigns/history"
-            className="flex items-center justify-between rounded-[10px] border border-border bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,.07)] transition-all hover:shadow-md"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-sm">📊</span>
-              <div>
-                <div className="text-[13px] font-semibold">Campaign History</div>
-                <div className="text-[11px] text-text3">{campaigns.filter((c) => c.status !== "DRAFT").length} campaigns sent</div>
-              </div>
+        <Link
+          href="/dashboard/campaigns/history"
+          className="mb-5 flex items-center justify-between rounded-[10px] border border-border bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,.07)] transition-all hover:shadow-md"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm">📊</span>
+            <div>
+              <div className="text-[13px] font-semibold">Campaign History</div>
+              <div className="text-[11px] text-text3">View all sent campaigns and stats</div>
             </div>
-            <span className="text-xs text-text3">→</span>
-          </Link>
-        )}
-
-        {!loading && campaigns.length === 0 && (
-          <div className="py-12 text-center">
-            <div className="mb-2 text-3xl">📣</div>
-            <div className="text-sm text-text3">No campaigns yet</div>
-            <div className="mt-1 text-xs text-text3">Create your first campaign to reach customers</div>
           </div>
-        )}
+          <span className="text-xs text-text3">→</span>
+        </Link>
       </div>
 
       {/* Create Campaign Modal */}
