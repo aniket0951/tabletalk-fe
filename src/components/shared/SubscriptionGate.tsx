@@ -29,10 +29,7 @@ export function useSubscriptionGate(): SubscriptionGateResult {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const hasActiveSub = subscriptionPlan && (
-    subscriptionStatus === "ACTIVE" ||
-    (subscriptionStatus === "TRIAL" && trialDays !== null && trialDays > 0)
-  );
+  const hasActiveSub = subscriptionPlan && subscriptionStatus !== "EXPIRED";
 
   const checkSubscription = useCallback(
     (action: string, onAllowed: () => void) => {
