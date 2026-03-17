@@ -5,6 +5,7 @@ import Link from "next/link";
 import Topbar from "@/components/dashboard/Topbar";
 import { useSidebarToggle } from "../../layout";
 import { apiFetch } from "@/lib/api";
+import { cachedFetch, TTL } from "@/lib/cache";
 import type { ApiCampaign } from "@/types";
 
 const statusMap: Record<string, { label: string; cls: string }> = {
@@ -31,10 +32,9 @@ export default function CampaignHistoryPage() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchCampaigns = useCallback(() => {
-    apiFetch("/campaigns")
-      .then((r) => r.json())
+    cachedFetch<{ campaigns: ApiCampaign[] }>("campaigns_history", () => apiFetch("/campaigns"), TTL.FIVE_MIN)
       .then((data) => {
-        setCampaigns((data.campaigns || []).filter((c: ApiCampaign) => c.status !== "DRAFT"));
+        setCampaigns((data?.campaigns || []).filter((c: ApiCampaign) => c.status !== "DRAFT"));
         setLoading(false);
       })
       .catch(() => setLoading(false));
