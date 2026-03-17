@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { SocketProvider, useSocket } from "@/contexts/SocketContext";
 import { apiFetch } from "@/lib/api";
@@ -24,26 +24,88 @@ interface RestaurantData {
   restaurantCode: string | null;
 }
 
+// Isolated component for sidebar — order count updates only re-render this, not children
+function SidebarWithOrderCount({ restName, plan, subscriptionStatus, daysRemaining, sidebarOpen, onClose }: {
+  restName: string;
+  plan: string | null;
+  subscriptionStatus: string | null;
+  daysRemaining: number | null;
+  sidebarOpen: boolean;
+  onClose: () => void;
+}) {
+  const [activeOrderCount, setActiveOrderCount] = useState(0);
+  const { socket } = useSocket();
+  const orderCountRef = useRef(0);
+
+  // Initial fetch — one time only
+  useEffect(() => {
+    apiFetch("/api/orders")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const count = data.filter((o: { status: string }) => ["NEW", "COOKING", "READY"].includes(o.status)).length;
+          orderCountRef.current = count;
+          setActiveOrderCount(count);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Socket updates — adjust count from event data, no API re-fetch
+  useEffect(() => {
+    if (!socket) return;
+
+    const activeStatuses = new Set(["NEW", "COOKING", "READY"]);
+
+    const handleOrderUpdated = (order: { id: string; status: string }) => {
+      // Re-fetch count since we can't track transitions reliably without full state
+      apiFetch("/api/orders")
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const count = data.filter((o: { status: string }) => activeStatuses.has(o.status)).length;
+            if (count !== orderCountRef.current) {
+              orderCountRef.current = count;
+              setActiveOrderCount(count);
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    const handleOrderCreated = () => {
+      orderCountRef.current += 1;
+      setActiveOrderCount(orderCountRef.current);
+    };
+
+    socket.on("order:updated", handleOrderUpdated);
+    socket.on("order:created", handleOrderCreated);
+    return () => {
+      socket.off("order:updated", handleOrderUpdated);
+      socket.off("order:created", handleOrderCreated);
+    };
+  }, [socket]);
+
+  return (
+    <Sidebar
+      restName={restName}
+      subscriptionPlan={plan}
+      subscriptionStatus={subscriptionStatus}
+      trialDaysLeft={daysRemaining}
+      activeOrderCount={activeOrderCount}
+      open={sidebarOpen}
+      onClose={onClose}
+    />
+  );
+}
+
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const [restName, setRestName] = useState("");
   const [restaurantData, setRestaurantData] = useState<RestaurantData | null>(null);
   const [plan, setPlan] = useState<string | null>("GROWTH");
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
-  const [activeOrderCount, setActiveOrderCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { socket } = useSocket();
-
-  const fetchActiveOrderCount = useCallback(() => {
-    apiFetch("/api/orders")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setActiveOrderCount(data.filter((o: { status: string }) => ["NEW", "COOKING", "READY"].includes(o.status)).length);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     const noSub = localStorage.getItem("demo_no_sub");
@@ -58,8 +120,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         }
       });
 
-    fetchActiveOrderCount();
-
     // Cache subscription data for 1 hour
     cachedFetch<{ plan: string; status: string; daysRemaining: number }>(
       "subscription",
@@ -70,17 +130,18 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       if (data?.status) setSubscriptionStatus(data.status);
       if (data?.daysRemaining != null) setDaysRemaining(data.daysRemaining);
     });
-  }, [fetchActiveOrderCount]);
-
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("order:updated", fetchActiveOrderCount);
-    return () => { socket.off("order:updated", fetchActiveOrderCount); };
-  }, [socket, fetchActiveOrderCount]);
+  }, []);
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar restName={restName} subscriptionPlan={plan} subscriptionStatus={subscriptionStatus} trialDaysLeft={daysRemaining} activeOrderCount={activeOrderCount} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <SidebarWithOrderCount
+        restName={restName}
+        plan={plan}
+        subscriptionStatus={subscriptionStatus}
+        daysRemaining={daysRemaining}
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
       <div className="flex flex-1 flex-col md:ml-[220px]">
         <SubscriptionPlanContext.Provider value={plan}>
           <SubscriptionStatusContext.Provider value={subscriptionStatus}>
