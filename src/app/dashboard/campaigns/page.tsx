@@ -118,7 +118,7 @@ export default function CampaignsPage() {
       const res = await apiFetch(`/campaigns/${draftCampaign.id}/checkout`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json();
-        showToast(data.error || "Checkout failed");
+        showToast(data.detail || data.error || "Checkout failed");
         setPaying(false);
         return;
       }
