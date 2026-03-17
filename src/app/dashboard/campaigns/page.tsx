@@ -488,7 +488,7 @@ export default function CampaignsPage() {
                 <>
                   <button onClick={() => setStep(2)} className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2">Back</button>
                   <button onClick={handlePayAndSend} disabled={paying} className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50">
-                    {paying ? "Processing..." : `Pay ₹${draftCampaign?.totalCost.toFixed(0)} & Send`}
+                    {paying ? "Processing..." : "Pay & Send"}
                   </button>
                 </>
               )}
