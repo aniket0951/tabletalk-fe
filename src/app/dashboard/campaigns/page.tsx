@@ -54,6 +54,24 @@ export default function CampaignsPage() {
   const [detailCampaign, setDetailCampaign] = useState<ApiCampaign | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function deleteDraft(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await apiFetch(`/campaigns/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        showToast("Draft deleted");
+        fetchCampaigns();
+      } else {
+        const data = await res.json();
+        showToast(data.debug || data.error || "Failed to delete");
+      }
+    } catch {
+      showToast("Failed to delete");
+    }
+    setDeletingId(null);
+  }
 
   const fetchCampaigns = useCallback(() => {
     apiFetch("/campaigns")
@@ -302,18 +320,27 @@ export default function CampaignsPage() {
               <div className="text-[13px] font-semibold">{draft.title}</div>
               <div className="text-[11px] text-text3">Draft · {draft.audienceCount} customers · ₹{draft.totalCost.toFixed(0)}</div>
             </div>
-            <button
-              onClick={() => {
-                setCType(draft.type);
-                setCTitle(draft.title);
-                setCMessage(draft.message);
-                setDraftCampaign(draft);
-                setStep(3);
-              }}
-              className="rounded-lg bg-accent px-3 py-[7px] text-[12px] font-semibold text-white transition-all hover:bg-accent2"
-            >
-              Continue & Pay
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => deleteDraft(draft.id)}
+                disabled={deletingId === draft.id}
+                className="rounded-lg border border-border bg-transparent px-3 py-[7px] text-[12px] font-semibold text-text3 transition-all hover:bg-red-bg hover:text-red disabled:opacity-50"
+              >
+                {deletingId === draft.id ? "..." : "Delete"}
+              </button>
+              <button
+                onClick={() => {
+                  setCType(draft.type);
+                  setCTitle(draft.title);
+                  setCMessage(draft.message);
+                  setDraftCampaign(draft);
+                  setStep(3);
+                }}
+                className="rounded-lg bg-accent px-3 py-[7px] text-[12px] font-semibold text-white transition-all hover:bg-accent2"
+              >
+                Continue & Pay
+              </button>
+            </div>
           </div>
         ))}
 
