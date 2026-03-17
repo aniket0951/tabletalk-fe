@@ -53,6 +53,7 @@ export default function CampaignsPage() {
   // Detail view
   const [detailCampaign, setDetailCampaign] = useState<ApiCampaign | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const fetchCampaigns = useCallback(() => {
     apiFetch("/campaigns")
@@ -65,7 +66,14 @@ export default function CampaignsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchCampaigns(); }, [fetchCampaigns]);
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
+
+  // Auto-expand guide when no campaigns exist
+  useEffect(() => {
+    if (!loading && campaigns.length === 0) setShowGuide(true);
+  }, [loading, campaigns.length]);
 
   function openCreate() {
     setStep(1);
@@ -198,6 +206,93 @@ export default function CampaignsPage() {
               <div className="mt-1 font-serif text-lg font-bold">{s.value}</div>
             </div>
           ))}
+        </div>
+
+        {/* How it works guide */}
+        <div className="mb-5 rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+          <button
+            onClick={() => setShowGuide(!showGuide)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">💡</span>
+              <span className="text-[13px] font-semibold">How Campaigns Work</span>
+            </div>
+            <span className={`text-[10px] text-text3 transition-transform ${showGuide ? "rotate-180" : ""}`}>▼</span>
+          </button>
+          {showGuide && (
+            <div className="border-t border-border px-4 py-4">
+              {/* What are campaigns */}
+              <div className="mb-4">
+                <div className="text-xs font-bold text-text2 mb-1">What are campaigns?</div>
+                <div className="text-xs text-text3 leading-relaxed">
+                  Campaigns let you send promotional messages directly to your customers via WhatsApp and SMS.
+                  Announce discounts, new dishes, festival offers, or any custom message to bring customers back.
+                </div>
+              </div>
+
+              {/* How delivery works */}
+              <div className="mb-4">
+                <div className="text-xs font-bold text-text2 mb-1">How are messages delivered?</div>
+                <div className="text-xs text-text3 leading-relaxed">
+                  Messages are sent via <span className="font-semibold text-text2">WhatsApp first</span>.
+                  If a customer isn't on WhatsApp, we automatically fall back to <span className="font-semibold text-text2">SMS</span>.
+                  This ensures maximum reach.
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div className="mb-4">
+                <div className="text-xs font-bold text-text2 mb-2">Pricing</div>
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="grid grid-cols-2 bg-surface2 px-3 py-1.5 text-[10px] font-bold text-text3">
+                    <span>Budget</span><span className="text-right">Customers Reached</span>
+                  </div>
+                  {[
+                    { budget: "₹138", reach: "100" },
+                    { budget: "₹500", reach: "~362" },
+                    { budget: "₹1,000", reach: "~724" },
+                    { budget: "₹1,380", reach: "1,000" },
+                  ].map((r) => (
+                    <div key={r.budget} className="grid grid-cols-2 border-t border-border px-3 py-1.5 text-xs">
+                      <span className="font-semibold">{r.budget}</span>
+                      <span className="text-right text-text2">{r.reach}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Why run campaigns */}
+              <div className="mb-4 rounded-lg bg-accent-bg/50 p-3">
+                <div className="text-xs font-bold text-accent mb-1">Why run campaigns?</div>
+                <div className="space-y-1.5 text-xs text-text2 leading-relaxed">
+                  <div>Restaurants that send regular campaigns see <span className="font-bold text-accent">2-3x more returning customers</span> compared to those that don't.</div>
+                  <div>A simple "10% off this weekend" message can bring back customers who haven't visited in weeks — turning one-time visitors into regulars.</div>
+                  <div className="text-text3">Every returning customer costs ₹0 to acquire. Campaigns just remind them you exist.</div>
+                </div>
+              </div>
+
+              {/* Tips */}
+              <div className="mb-3">
+                <div className="text-xs font-bold text-text2 mb-2">Tips for effective campaigns</div>
+                <div className="space-y-2">
+                  {[
+                    { icon: "🏷", text: "Discount campaigns work best on weekdays when footfall is low" },
+                    { icon: "🍽", text: "New dish announcements drive curiosity — add a limited-time tag" },
+                    { icon: "🎉", text: "Festival offers get 2-3x more response than regular campaigns" },
+                    { icon: "⏰", text: "Send campaigns between 10 AM – 12 PM or 5 PM – 7 PM for best results" },
+                    { icon: "📝", text: "Keep messages short, personal, and include a clear offer" },
+                  ].map((tip) => (
+                    <div key={tip.icon} className="flex items-start gap-2 text-xs text-text3">
+                      <span className="shrink-0">{tip.icon}</span>
+                      <span>{tip.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
         </div>
 
         {/* Campaign List */}
