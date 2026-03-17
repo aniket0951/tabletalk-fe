@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, ReactNode } from "react";
-import { useSubscriptionPlan, useSubscriptionStatus } from "@/app/dashboard/layout";
+import { useSubscriptionPlan, useSubscriptionStatus, useTrialDays } from "@/app/dashboard/layout";
 import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
@@ -21,6 +21,7 @@ interface SubscriptionGateResult {
 export function useSubscriptionGate(): SubscriptionGateResult {
   const subscriptionPlan = useSubscriptionPlan();
   const subscriptionStatus = useSubscriptionStatus();
+  const trialDays = useTrialDays();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PlanType>("GROWTH");
@@ -28,7 +29,10 @@ export function useSubscriptionGate(): SubscriptionGateResult {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const hasActiveSub = subscriptionPlan && (subscriptionStatus === "TRIAL" || subscriptionStatus === "ACTIVE");
+  const hasActiveSub = subscriptionPlan && (
+    subscriptionStatus === "ACTIVE" ||
+    (subscriptionStatus === "TRIAL" && trialDays !== null && trialDays > 0)
+  );
 
   const checkSubscription = useCallback(
     (action: string, onAllowed: () => void) => {

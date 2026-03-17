@@ -325,7 +325,12 @@ export default function StaffOrdersPage() {
                 <div className="flex items-center justify-between px-4 py-3">
                   <div>
                     <div className="text-[13px] font-bold">{order.orderCode}</div>
-                    <div className="mt-0.5 text-xs text-text2">{order.table?.label || "—"}</div>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-text2">
+                      <span>{order.table?.label || "—"}</span>
+                      <span className="text-text3">
+                        {new Date(order.placedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
                   </div>
                   <span className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${st.cls}`}>
                     {st.label}

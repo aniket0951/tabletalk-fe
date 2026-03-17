@@ -177,6 +177,16 @@ export interface ApiMenuCategory {
   items: ApiMenuItem[];
 }
 
+export interface MenuItemRating {
+  averageRating: number;
+  ratingCount: number;
+}
+
+export interface RatingSubmission {
+  orderId: string;
+  ratings: { menuItemId: string; rating: number; note?: string }[];
+}
+
 export interface ApiMenuItem {
   id: string;
   name: string;
@@ -186,6 +196,62 @@ export interface ApiMenuItem {
   available: boolean;
   categoryId: string;
   restaurantId: string;
+  averageRating?: number;
+  ratingCount?: number;
+}
+
+export interface CreateOrderRequest {
+  tableId: string;
+  customerPhone: string;
+  customerName: string;
+  specialNote: string;
+  items: { menuItemId: string; quantity: number }[];
+}
+
+export interface PublicTableInfo {
+  id: string;
+  tableNumber: number;
+  label: string;
+  capacity: number;
+  restaurant: { id: string; name: string };
+}
+
+export type CampaignType = "DISCOUNT" | "NEW_DISH" | "FESTIVAL" | "CUSTOM";
+export type CampaignStatus = "DRAFT" | "SCHEDULED" | "PAYING" | "SENDING" | "COMPLETED" | "FAILED";
+
+export interface ApiCampaign {
+  id: string;
+  restaurantId: string;
+  type: CampaignType;
+  title: string;
+  message: string;
+  imageUrl: string;
+  audienceCount: number;
+  costPerMessage: number;
+  totalCost: number;
+  status: CampaignStatus;
+  scheduledAt: string | null;
+  sentAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  stats?: {
+    sent: number;
+    delivered: number;
+    failed: number;
+    pending: number;
+    total: number;
+    whatsapp?: number;
+    sms?: number;
+  };
+}
+
+export interface CampaignCheckoutResponse {
+  razorpayOrderId: string;
+  razorpayKeyId: string;
+  amount: number;
+  currency: string;
+  name: string;
+  email: string;
 }
 
 export interface DashboardStats {

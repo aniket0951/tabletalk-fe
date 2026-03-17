@@ -6,7 +6,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicFetch } from "@/lib/api";
 import type { ApiMenuCategory } from "@/types";
 
 export default function MenuPage() {
@@ -24,6 +24,34 @@ export default function MenuPage() {
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [savingItem, setSavingItem] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Reviews modal state
+  type Review = { rating: number; note: string; createdAt: string; customer: { name: string } };
+  const [reviewsModal, setReviewsModal] = useState<{ itemId: string; itemName: string; reviews: Review[]; page: number; totalPages: number; starFilter: number | null } | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
+  const fetchReviews = useCallback(async (itemId: string, itemName: string, page: number, star: number | null) => {
+    setReviewsLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: "10" });
+      if (star) params.set("star", String(star));
+      const res = await publicFetch(`/public/ratings/${itemId}?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviewsModal((prev) => ({
+          itemId,
+          itemName,
+          reviews: page === 1 ? data.ratings : [...(prev?.reviews || []), ...data.ratings],
+          page: data.pagination.page,
+          totalPages: data.pagination.totalPages,
+          starFilter: star,
+        }));
+      }
+    } catch {
+      // silently fail
+    }
+    setReviewsLoading(false);
+  }, []);
 
   // Modal state
   const [miName, setMiName] = useState("");
@@ -185,7 +213,22 @@ export default function MenuPage() {
                       <div className="text-[13px] font-medium">{item.name}</div>
                       <div className="mt-[1px] text-[11px] text-text3">{item.description}</div>
                     </div>
-                    <div className="min-w-[52px] text-right font-mono text-[13px] font-semibold">₹{item.price}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-[52px] text-right font-mono text-[13px] font-semibold">₹{item.price}</div>
+                      {item.averageRating !== undefined && item.ratingCount !== undefined && item.ratingCount > 0 && (
+                        <button
+                          onClick={() => {
+                            setReviewsModal({ itemId: item.id, itemName: item.name, reviews: [], page: 1, totalPages: 1, starFilter: null });
+                            fetchReviews(item.id, item.name, 1, null);
+                          }}
+                          className="flex items-center gap-0.5 text-[11px] text-text3 hover:text-text2"
+                        >
+                          <span className="text-amber-400">★</span>
+                          <span className="font-semibold text-text2">{item.averageRating.toFixed(1)}</span>
+                          <span>({item.ratingCount})</span>
+                        </button>
+                      )}
+                    </div>
                     <button
                       onClick={() => checkSubscription("Edit Item", () => openEditModal(cat.id, item))}
                       className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
@@ -241,6 +284,89 @@ export default function MenuPage() {
             <div className="flex justify-end gap-2 border-t border-border px-5 py-[14px]">
               <button onClick={() => setCatModalOpen(false)} className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2">Cancel</button>
               <button onClick={saveCategory} disabled={catSaving} className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50">{catSaving ? "Adding..." : "Add Category"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reviews Modal */}
+      {reviewsModal && (
+        <div
+          className="fixed inset-0 z-[500] flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO"
+          onClick={(e) => e.target === e.currentTarget && setReviewsModal(null)}
+        >
+          <div className="mx-4 w-full max-w-[460px] overflow-hidden rounded-[14px] bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] animate-slideUp sm:mx-0">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div>
+                <div className="text-sm font-bold">{reviewsModal.itemName}</div>
+                <div className="text-xs text-text3">Customer Reviews</div>
+              </div>
+              <button onClick={() => setReviewsModal(null)} className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 transition-all hover:bg-red-bg hover:text-red">✕</button>
+            </div>
+
+            {/* Star filter pills */}
+            <div className="flex gap-1.5 overflow-x-auto border-b border-border px-5 py-2 scrollbar-none">
+              <button
+                onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, null)}
+                className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${
+                  reviewsModal.starFilter === null
+                    ? "border-accent bg-accent-bg text-accent"
+                    : "border-border bg-surface text-text2"
+                }`}
+              >
+                All
+              </button>
+              {[5, 4, 3, 2, 1].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, star)}
+                  className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${
+                    reviewsModal.starFilter === star
+                      ? "border-accent bg-accent-bg text-accent"
+                      : "border-border bg-surface text-text2"
+                  }`}
+                >
+                  {star} ★
+                </button>
+              ))}
+            </div>
+
+            <div className="max-h-[55vh] overflow-y-auto px-5 py-3">
+              {reviewsLoading && reviewsModal.reviews.length === 0 ? (
+                <div className="py-6 text-center text-xs text-text3">Loading reviews...</div>
+              ) : reviewsModal.reviews.length === 0 ? (
+                <div className="py-6 text-center text-xs text-text3">No reviews found</div>
+              ) : (
+                <div className="space-y-3">
+                  {reviewsModal.reviews.map((review, i) => (
+                    <div key={i} className="rounded-lg border border-border bg-surface2 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <span key={s} className={`text-sm ${s <= review.rating ? "text-amber-400" : "text-text3"}`}>★</span>
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-text3">
+                          {new Date(review.createdAt).toLocaleDateString([], { day: "2-digit", month: "short" })}
+                        </span>
+                      </div>
+                      {review.note && <div className="mt-1.5 text-xs text-text2">{review.note}</div>}
+                      <div className="mt-1 text-[10px] text-text3">{review.customer.name || "Customer"}</div>
+                    </div>
+                  ))}
+
+                  {/* Load more */}
+                  {reviewsModal.page < reviewsModal.totalPages && (
+                    <button
+                      onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, reviewsModal.page + 1, reviewsModal.starFilter)}
+                      disabled={reviewsLoading}
+                      className="w-full rounded-lg border border-border py-2 text-xs font-semibold text-text2 transition-all hover:bg-surface2 disabled:opacity-50"
+                    >
+                      {reviewsLoading ? "Loading..." : "Load more"}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
