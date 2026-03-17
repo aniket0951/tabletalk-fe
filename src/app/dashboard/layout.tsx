@@ -37,40 +37,20 @@ function SidebarWithOrderCount({ restName, plan, subscriptionStatus, daysRemaini
   const { socket } = useSocket();
   const orderCountRef = useRef(0);
 
-  // Initial fetch — one time only
-  useEffect(() => {
-    apiFetch("/api/orders")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const count = data.filter((o: { status: string }) => ["NEW", "COOKING", "READY"].includes(o.status)).length;
-          orderCountRef.current = count;
-          setActiveOrderCount(count);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // Socket updates — adjust count from event data, no API re-fetch
+  // No initial API fetch — count starts at 0 and updates via socket only
   useEffect(() => {
     if (!socket) return;
 
     const activeStatuses = new Set(["NEW", "COOKING", "READY"]);
 
-    const handleOrderUpdated = (order: { id: string; status: string }) => {
-      // Re-fetch count since we can't track transitions reliably without full state
-      apiFetch("/api/orders")
-        .then((r) => r.json())
-        .then((data) => {
-          if (Array.isArray(data)) {
-            const count = data.filter((o: { status: string }) => activeStatuses.has(o.status)).length;
-            if (count !== orderCountRef.current) {
-              orderCountRef.current = count;
-              setActiveOrderCount(count);
-            }
-          }
-        })
-        .catch(() => {});
+    const handleOrderUpdated = (order: { status: string }) => {
+      if (!activeStatuses.has(order.status)) {
+        // Order moved out of active — decrement
+        if (orderCountRef.current > 0) {
+          orderCountRef.current -= 1;
+          setActiveOrderCount(orderCountRef.current);
+        }
+      }
     };
 
     const handleOrderCreated = () => {
