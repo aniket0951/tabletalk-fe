@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3004";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3004";
 
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   // Strip /api prefix: "/api/orders" -> "/orders"
@@ -48,4 +48,17 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   }
 
   return res;
+}
+
+export async function publicFetch(path: string, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers);
+
+  if (init?.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  return fetch(`${API_URL}${path}`, {
+    ...init,
+    headers,
+  });
 }

@@ -46,7 +46,7 @@ export default function TablesPage() {
   const { gate, checkSubscription } = useSubscriptionGate();
   const [tables, setTables] = useState<ApiDiningTable[]>([]);
   const [loading, setLoading] = useState(true);
-  const [restPhone, setRestPhone] = useState("");
+  const [restPhone, setRestPhone] = useState(""); // kept for backwards compat
   const [qrTable, setQrTable] = useState<ApiDiningTable | null>(null);
   const [editModal, setEditModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -166,7 +166,7 @@ export default function TablesPage() {
           <div className="text-[22px]">📱</div>
           <div className="flex-1">
             <div className="text-[13px] font-semibold">How QR codes work</div>
-            <div className="text-xs text-text2">Each table gets a unique QR. Customer scans → WhatsApp opens pre-filled → they order. Print, laminate, place on table.</div>
+            <div className="text-xs text-text2">Each table gets a unique QR. Customer scans → browses menu → places order online. Print, laminate, place on table.</div>
           </div>
           <button onClick={() => showToast("🖨 Preparing QR codes…")} className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface2">Preview all →</button>
         </div>
@@ -211,9 +211,9 @@ export default function TablesPage() {
                 <div dangerouslySetInnerHTML={{ __html: generateQRSVG(qrTable.tableNumber) }} className="h-[160px] w-[160px]" />
               </div>
               <div className="mb-1 font-serif text-xl font-extrabold">{qrTable.label}</div>
-              <div className="mb-2 text-xs text-text2">Scan to order via WhatsApp</div>
+              <div className="mb-2 text-xs text-text2">Scan to order online</div>
               <div className="mb-4 break-all rounded-md bg-surface2 px-[10px] py-2 text-left font-mono text-[10px] leading-[1.5] text-text3">
-                {`https://wa.me/${restPhone || "919876543210"}?text=Hi+I+am+at+Table+${qrTable.tableNumber}`}
+                {typeof window !== "undefined" ? `${window.location.origin}/order/${qrTable.id}` : `/order/${qrTable.id}`}
               </div>
             </div>
             <div className="flex gap-2 border-t border-border px-5 py-[14px]">
