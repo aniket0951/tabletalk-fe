@@ -295,10 +295,32 @@ export default function CampaignsPage() {
           )}
         </div>
 
+        {/* Draft campaign banner */}
+        {!loading && campaigns.filter((c) => c.status === "DRAFT").map((draft) => (
+          <div key={draft.id} className="mb-4 flex items-center justify-between rounded-[10px] border border-amber/30 bg-amber-bg/50 px-4 py-3">
+            <div>
+              <div className="text-[13px] font-semibold">{draft.title}</div>
+              <div className="text-[11px] text-text3">Draft · {draft.audienceCount} customers · ₹{draft.totalCost.toFixed(0)}</div>
+            </div>
+            <button
+              onClick={() => {
+                setCType(draft.type);
+                setCTitle(draft.title);
+                setCMessage(draft.message);
+                setDraftCampaign(draft);
+                setStep(3);
+              }}
+              className="rounded-lg bg-accent px-3 py-[7px] text-[12px] font-semibold text-white transition-all hover:bg-accent2"
+            >
+              Continue & Pay
+            </button>
+          </div>
+        ))}
+
         {/* Campaign List */}
         {loading ? (
           <div className="py-6 text-center text-sm text-text3">Loading campaigns...</div>
-        ) : campaigns.length === 0 ? (
+        ) : campaigns.filter((c) => c.status !== "DRAFT").length === 0 && campaigns.filter((c) => c.status === "DRAFT").length === 0 ? (
           <div className="py-12 text-center">
             <div className="mb-2 text-3xl">📣</div>
             <div className="text-sm text-text3">No campaigns yet</div>
@@ -306,7 +328,7 @@ export default function CampaignsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {campaigns.map((c) => {
+            {campaigns.filter((c) => c.status !== "DRAFT").map((c) => {
               const st = statusMap[c.status] || statusMap.DRAFT;
               const tp = typeMap[c.type] || typeMap.CUSTOM;
               const deliveryRate = c.stats && c.stats.total > 0
