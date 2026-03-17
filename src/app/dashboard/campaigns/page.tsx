@@ -7,6 +7,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch } from "@/lib/api";
+import { setCache, TTL } from "@/lib/cache";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import type { ApiCampaign, CampaignType, CampaignCheckoutResponse } from "@/types";
 
@@ -80,6 +81,8 @@ export default function CampaignsPage() {
       .then((data) => {
         setCampaigns(data.campaigns || []);
         setStats(data.stats || { totalCampaigns: 0, totalReach: 0, totalSpent: 0 });
+        // Cache for history page so it loads instantly
+        setCache("campaigns_history", data, TTL.FIVE_MIN);
         setLoading(false);
       })
       .catch(() => setLoading(false));
