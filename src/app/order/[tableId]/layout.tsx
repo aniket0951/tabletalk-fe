@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { createContext, useContext, useEffect, useState, use } from "react";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { publicFetch } from "@/lib/api";
 import type { PublicTableInfo } from "@/types";
+
+const TableInfoContext = createContext<PublicTableInfo | null>(null);
+export function useTableInfo() { return useContext(TableInfoContext); }
 
 export default function CustomerLayout({
   children,
@@ -50,15 +53,17 @@ export default function CustomerLayout({
   return (
     <SocketProvider>
       <CartProvider tableId={tableId}>
-        <div className="mx-auto min-h-screen max-w-lg bg-background">
-          {/* Header */}
-          <header className="sticky top-0 z-40 border-b border-border bg-surface px-4 py-3">
-            <div className="text-base font-bold">{tableInfo.restaurant.name}</div>
-            <div className="text-xs text-text2">{tableInfo.label} · {tableInfo.capacity} seats</div>
-          </header>
+        <TableInfoContext.Provider value={tableInfo}>
+          <div className="mx-auto min-h-screen max-w-lg bg-background">
+            {/* Header */}
+            <header className="sticky top-0 z-40 border-b border-border bg-surface px-4 py-3">
+              <div className="text-base font-bold">{tableInfo.restaurant.name}</div>
+              <div className="text-xs text-text2">{tableInfo.label} · {tableInfo.capacity} seats</div>
+            </header>
 
-          <main>{children}</main>
-        </div>
+            <main>{children}</main>
+          </div>
+        </TableInfoContext.Provider>
       </CartProvider>
     </SocketProvider>
   );

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { SocketProvider, useSocket } from "@/contexts/SocketContext";
 import { apiFetch } from "@/lib/api";
+import { cachedFetch, TTL } from "@/lib/cache";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,8 +14,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 }
 
+interface RestaurantData {
+  id: string;
+  name: string;
+  phone: string;
+  city: string;
+  upiId: string;
+  serviceMode: string;
+  restaurantCode: string | null;
+}
+
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const [restName, setRestName] = useState("");
+  const [restaurantData, setRestaurantData] = useState<RestaurantData | null>(null);
   const [plan, setPlan] = useState<string | null>("GROWTH");
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
@@ -37,21 +49,27 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     const noSub = localStorage.getItem("demo_no_sub");
     if (noSub === "true") setPlan(null);
 
-    apiFetch("/api/restaurant")
-      .then((r) => r.json())
-      .then((data) => { if (data?.name) setRestName(data.name); })
-      .catch(() => {});
+    // Cache restaurant data for 1 day
+    cachedFetch<RestaurantData>("restaurant", () => apiFetch("/api/restaurant"), TTL.ONE_DAY)
+      .then((data) => {
+        if (data?.name) {
+          setRestName(data.name);
+          setRestaurantData(data);
+        }
+      });
 
     fetchActiveOrderCount();
 
-    apiFetch("/api/billing/subscription")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && data.plan) setPlan(noSub === "true" ? null : data.plan);
-        if (data?.status) setSubscriptionStatus(data.status);
-        if (data?.daysRemaining != null) setDaysRemaining(data.daysRemaining);
-      })
-      .catch(() => {});
+    // Cache subscription data for 1 hour
+    cachedFetch<{ plan: string; status: string; daysRemaining: number }>(
+      "subscription",
+      () => apiFetch("/api/billing/subscription"),
+      TTL.ONE_HOUR,
+    ).then((data) => {
+      if (data && data.plan) setPlan(noSub === "true" ? null : data.plan);
+      if (data?.status) setSubscriptionStatus(data.status);
+      if (data?.daysRemaining != null) setDaysRemaining(data.daysRemaining);
+    });
   }, [fetchActiveOrderCount]);
 
   useEffect(() => {
@@ -67,9 +85,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <SubscriptionPlanContext.Provider value={plan}>
           <SubscriptionStatusContext.Provider value={subscriptionStatus}>
             <TrialDaysContext.Provider value={daysRemaining}>
-              <SidebarToggleContext.Provider value={() => setSidebarOpen(true)}>
-                {children}
-              </SidebarToggleContext.Provider>
+              <RestaurantContext.Provider value={restaurantData}>
+                <SidebarToggleContext.Provider value={() => setSidebarOpen(true)}>
+                  {children}
+                </SidebarToggleContext.Provider>
+              </RestaurantContext.Provider>
             </TrialDaysContext.Provider>
           </SubscriptionStatusContext.Provider>
         </SubscriptionPlanContext.Provider>
@@ -90,3 +110,6 @@ export function useSubscriptionStatus() { return useContext(SubscriptionStatusCo
 
 export const TrialDaysContext = createContext<number | null>(null);
 export function useTrialDays() { return useContext(TrialDaysContext); }
+
+export const RestaurantContext = createContext<RestaurantData | null>(null);
+export function useRestaurant() { return useContext(RestaurantContext); }

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, use } from "react";
 import Link from "next/link";
 import { publicFetch } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
+import { useTableInfo } from "./layout";
 import type { ApiMenuCategory, ApiMenuItem } from "@/types";
 
 export default function MenuPage({
@@ -12,6 +13,7 @@ export default function MenuPage({
   params: Promise<{ tableId: string }>;
 }) {
   const { tableId } = use(params);
+  const tableInfo = useTableInfo();
   const { items: cartItems, addItem, removeItem, totalItems, subtotal } = useCart();
 
   const [categories, setCategories] = useState<ApiMenuCategory[]>([]);
@@ -52,12 +54,9 @@ export default function MenuPage({
   };
 
   useEffect(() => {
-    publicFetch(`/public/table/${tableId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setRestaurantId(data.restaurant.id);
-        return publicFetch(`/public/menu/${data.restaurant.id}`);
-      })
+    if (!tableInfo?.restaurant?.id) return;
+    setRestaurantId(tableInfo.restaurant.id);
+    publicFetch(`/public/menu/${tableInfo.restaurant.id}`)
       .then((r) => r.json())
       .then((cats: ApiMenuCategory[]) => {
         setCategories(cats);
@@ -65,7 +64,7 @@ export default function MenuPage({
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [tableId]);
+  }, [tableInfo]);
 
   const getItemQty = (menuItemId: string) =>
     cartItems.find((i) => i.menuItemId === menuItemId)?.quantity || 0;

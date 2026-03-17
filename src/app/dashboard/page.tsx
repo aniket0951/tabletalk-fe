@@ -42,18 +42,10 @@ export default function DashboardOverview() {
         if (r.status === 404) return { noRestaurant: true };
         return r.ok ? r.json() : null;
       }),
-      apiFetch("/api/billing/subscription").then((r) => {
-        if (r.status === 404) return { noSubscription: true };
-        return r.ok ? r.json() : null;
-      }),
     ])
-      .then(([ordersData, statsData, subscriptionData]) => {
+      .then(([ordersData, statsData]) => {
         if (statsData?.noRestaurant) {
           router.push("/onboarding/step1");
-          return;
-        }
-        if (subscriptionData?.noSubscription) {
-          router.push("/onboarding/step2");
           return;
         }
         setOrders(Array.isArray(ordersData) ? ordersData : []);

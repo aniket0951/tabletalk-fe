@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
-import { useSidebarToggle } from "../layout";
+import { useSidebarToggle, useRestaurant } from "../layout";
 import { apiFetch } from "@/lib/api";
+import { cachedFetch, clearCache, TTL } from "@/lib/cache";
 
 export default function SettingsPage() {
   const toggleSidebar = useSidebarToggle();
+  const restaurant = useRestaurant();
   const router = useRouter();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -25,19 +27,18 @@ export default function SettingsPage() {
   const [generatingCode, setGeneratingCode] = useState(false);
 
   useEffect(() => {
-    apiFetch("/api/restaurant")
-      .then((r) => r.json())
+    // Use cached restaurant data, fall back to fresh fetch
+    cachedFetch<Record<string, unknown>>("restaurant", () => apiFetch("/api/restaurant"), TTL.ONE_DAY)
       .then((data) => {
         if (data && !data.error) {
-          setRestName(data.name || "");
-          setPhone(data.phone || "");
-          setUpi(data.upiId || "");
-          setMode(data.serviceMode || "DINE_IN");
-          setTableCount(data.tableCount || 0);
-          setRestaurantCode(data.restaurantCode || "");
+          setRestName((data.name as string) || "");
+          setPhone((data.phone as string) || "");
+          setUpi((data.upiId as string) || "");
+          setMode((data.serviceMode as "DINE_IN" | "WALK_IN") || "DINE_IN");
+          setTableCount((data.tableCount as number) || 0);
+          setRestaurantCode((data.restaurantCode as string) || "");
         }
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,6 +72,7 @@ export default function SettingsPage() {
         }),
       });
       if (res.ok) {
+        clearCache("restaurant"); // invalidate cached restaurant data
         showToast("Settings saved!");
       } else {
         showToast("Failed to save settings");

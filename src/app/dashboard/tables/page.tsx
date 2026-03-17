@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
-import { useSidebarToggle } from "../layout";
+import { useSidebarToggle, useRestaurant } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
@@ -42,11 +42,12 @@ function generateQRSVG(tableNumber: number) {
 
 export default function TablesPage() {
   const toggleSidebar = useSidebarToggle();
+  const restaurant = useRestaurant();
   const { showToast } = useToast();
   const { gate, checkSubscription } = useSubscriptionGate();
   const [tables, setTables] = useState<ApiDiningTable[]>([]);
   const [loading, setLoading] = useState(true);
-  const [restPhone, setRestPhone] = useState(""); // kept for backwards compat
+  const restPhone = restaurant?.phone?.replace(/[^0-9]/g, "") || "";
   const [qrTable, setQrTable] = useState<ApiDiningTable | null>(null);
   const [editModal, setEditModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -61,11 +62,6 @@ export default function TablesPage() {
       .then((r) => r.json())
       .then((data) => { setTables(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
-
-    apiFetch("/api/restaurant")
-      .then((r) => r.json())
-      .then((data) => { if (data?.phone) setRestPhone(data.phone.replace(/[^0-9]/g, "")); })
-      .catch(() => {});
   }, []);
 
   const handleTableCreated = useCallback((t: ApiDiningTable) => {
