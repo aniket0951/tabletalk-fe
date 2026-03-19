@@ -5,7 +5,6 @@ import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
-import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch, publicFetch } from "@/lib/api";
 import type { ApiMenuCategory } from "@/types";
 
@@ -74,11 +73,11 @@ export default function MenuPage() {
 
   useEffect(() => { fetchMenu(); }, [fetchMenu]);
 
-  useSocketEvent("menu:updated", fetchMenu);
 
   function openAddModal() {
     setEditItemId(null);
     setMiName(""); setMiCat(""); setMiPrice(""); setMiType(""); setMiDesc("");
+    fetchMenu();
     setModalOpen(true);
   }
 
