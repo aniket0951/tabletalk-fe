@@ -5,7 +5,7 @@ import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "../layout";
 import { apiFetch } from "@/lib/api";
-import type { ApiCustomer, ApiOrder } from "@/types";
+import type { ApiCustomer, ApiOrder, ApiOrderSummary } from "@/types";
 
 interface CustomerStats {
   totalCustomers: number;
@@ -30,7 +30,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<ApiCustomer | null>(null);
-  const [customerOrders, setCustomerOrders] = useState<ApiOrder[]>([]);
+  const [customerOrders, setCustomerOrders] = useState<ApiOrderSummary[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
@@ -88,7 +88,7 @@ export default function CustomersPage() {
       .then((data) => {
         const orders = Array.isArray(data) ? data : [];
         setCustomerOrders(orders);
-        const first = statusGroups.find((st) => orders.some((o: ApiOrder) => o.status === st));
+        const first = statusGroups.find((st) => orders.some((o: ApiOrderSummary) => o.status === st));
         setExpandedStatus(first || null);
       })
       .catch(() => {})
@@ -257,14 +257,14 @@ export default function CustomersPage() {
                     {isOpen && (orders.length === 0 ? (
                       <div className="border-b border-border px-[18px] py-4 text-center text-xs text-text3">No orders</div>
                     ) : orders.map((order) => (
-                      <div key={order.id} onClick={() => setSelectedOrder(order)} className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background">
+                      <div key={order.id} onClick={async () => { try { const r = await apiFetch(`/api/orders/${order.id}`); if (r.ok) setSelectedOrder(await r.json()); } catch {} }} className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-[13px] font-bold">{order.orderCode}</span>
                             <span className="text-[13px] text-text2">{order.table?.label || "—"}</span>
                           </div>
                           <div className="mt-[1px] text-[11px] text-text3">
-                            {order.items.map((i) => `${i.menuItem.name}${i.quantity > 1 ? ` ×${i.quantity}` : ""}`).join(", ")}
+                            {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
                           </div>
                         </div>
                         <div className="min-w-[52px] text-right font-mono text-[13px] font-semibold">₹{order.total}</div>
@@ -286,9 +286,8 @@ export default function CustomersPage() {
         <OrderDrawer
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
-          onOrderUpdate={(updated) => {
-            setCustomerOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-            setSelectedOrder(updated);
+          onOrderUpdate={() => {
+            if (selectedCustomer) openCustomerOrders(selectedCustomer);
           }}
         />
       )}
