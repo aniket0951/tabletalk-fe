@@ -77,7 +77,6 @@ export default function MenuPage() {
   function openAddModal() {
     setEditItemId(null);
     setMiName(""); setMiCat(""); setMiPrice(""); setMiType(""); setMiDesc("");
-    fetchMenu();
     setModalOpen(true);
   }
 
@@ -153,6 +152,7 @@ export default function MenuPage() {
       });
       if (res.ok) {
         showToast(`${catEmoji} ${catName} category added!`);
+        fetchMenu();
       } else {
         showToast("Failed to add category");
       }
