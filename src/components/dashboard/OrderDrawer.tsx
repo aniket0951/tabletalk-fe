@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
-import type { ApiOrder, ApiOrderSummary } from "@/types";
+import type { ApiOrder, ApiOrderSummary, ApiStaff } from "@/types";
 
 interface OrderDrawerProps {
   /** Pass full order OR just a summary — drawer fetches detail if needed */
   order: ApiOrder | ApiOrderSummary | null;
   onClose: () => void;
   onOrderUpdate?: (order: ApiOrder) => void;
+  staffList?: ApiStaff[];
 }
 
 const statusMap: Record<string, { cls: string; label: string }> = {
@@ -45,11 +46,12 @@ function SkeletonLine({ w = "w-24" }: { w?: string }) {
   return <div className={`h-3 ${w} rounded bg-border animate-pulse`} />;
 }
 
-export default function OrderDrawer({ order: input, onClose, onOrderUpdate }: OrderDrawerProps) {
+export default function OrderDrawer({ order: input, onClose, onOrderUpdate, staffList = [] }: OrderDrawerProps) {
   const { showToast } = useToast();
   const [detail, setDetail] = useState<ApiOrder | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [assigningStaff, setAssigningStaff] = useState(false);
 
   const inputId = input?.id;
   const inputIsFull = input && isFullOrder(input);
@@ -102,6 +104,28 @@ export default function OrderDrawer({ order: input, onClose, onOrderUpdate }: Or
     onClose();
   }
 
+  async function handleStaffAssign(staffId: string) {
+    setAssigningStaff(true);
+    try {
+      const res = await apiFetch(`/api/orders/${input!.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ staffId: staffId || null }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setDetail(updated);
+        onOrderUpdate?.(updated);
+        const staffName = staffList.find((s) => s.id === staffId)?.name;
+        showToast(staffId ? `Assigned to ${staffName}` : "Staff unassigned");
+      } else {
+        showToast("Failed to assign staff");
+      }
+    } catch {
+      showToast("Failed to assign staff");
+    }
+    setAssigningStaff(false);
+  }
+
   return (
     <>
       <div
@@ -145,7 +169,24 @@ export default function OrderDrawer({ order: input, onClose, onOrderUpdate }: Or
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Table</span><span className="text-xs font-semibold">{input.table?.label || "—"}</span></div>
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Phone</span><span className="font-mono text-xs font-semibold">{order?.customerPhone || ("customerPhone" in input ? input.customerPhone : "—")}</span></div>
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Placed at</span><span className="font-mono text-xs font-semibold">{formatTime(input.placedAt)}</span></div>
-            <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Assigned to</span><span className="text-xs font-semibold">{order?.staff ? `${order.staff.name} (${order.staff.role})` : (input.staff?.name || "Unassigned")}</span></div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-xs text-text2">Assigned to</span>
+              {input.status === "SETTLED" || !order || staffList.length === 0 ? (
+                <span className="text-xs font-semibold">{order?.staff ? `${order.staff.name} (${order.staff.role})` : (input.staff?.name || "Unassigned")}</span>
+              ) : (
+                <select
+                  className="rounded-[5px] border border-border bg-surface px-2 py-[3px] text-xs font-semibold outline-none focus:border-accent"
+                  value={order.staffId || ""}
+                  onChange={(e) => handleStaffAssign(e.target.value)}
+                  disabled={assigningStaff}
+                >
+                  <option value="">Unassigned</option>
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                  ))}
+                </select>
+              )}
+            </div>
             {order?.specialNote && (
               <div className="flex justify-between"><span className="text-xs text-text2">Note</span><span className="text-xs font-semibold italic text-amber">&quot;{order.specialNote}&quot;</span></div>
             )}
