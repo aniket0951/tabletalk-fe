@@ -8,9 +8,10 @@ interface TopbarProps {
   title: string;
   onAddItem?: () => void;
   onMenuToggle: () => void;
+  loading?: boolean;
 }
 
-export default function Topbar({ title, onAddItem, onMenuToggle }: TopbarProps) {
+export default function Topbar({ title, onAddItem, onMenuToggle, loading }: TopbarProps) {
   const { isConnected } = useSocket();
   const subscriptionStatus = useSubscriptionStatus();
   const trialDaysLeft = useTrialDays();
@@ -22,7 +23,8 @@ export default function Topbar({ title, onAddItem, onMenuToggle }: TopbarProps) 
   }
 
   return (
-    <div className="sticky top-0 z-50 flex h-[54px] items-center justify-between border-b border-border bg-surface px-4 sm:px-[26px]">
+    <div className="sticky top-0 z-50 border-b border-border bg-surface">
+    <div className="flex h-[54px] items-center justify-between px-4 sm:px-[26px]">
       <div className="flex items-center gap-3">
         <button onClick={onMenuToggle} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-lg md:hidden">
           ☰
@@ -49,6 +51,12 @@ export default function Topbar({ title, onAddItem, onMenuToggle }: TopbarProps) 
           ⏻ Logout
         </button>
       </div>
+    </div>
+    {loading && (
+      <div className="h-[2px] w-full overflow-hidden bg-border">
+        <div className="h-full w-1/3 bg-accent" style={{ animation: "loading 1s ease-in-out infinite" }} />
+      </div>
+    )}
     </div>
   );
 }

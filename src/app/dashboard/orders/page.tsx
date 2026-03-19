@@ -119,12 +119,7 @@ export default function OrdersPage() {
 
   return (
     <>
-      <Topbar title="Order History" onMenuToggle={toggleSidebar} />
-      {drawerLoading && (
-        <div className="h-[2px] w-full overflow-hidden bg-border">
-          <div className="h-full w-1/3 animate-[loading_1s_ease-in-out_infinite] bg-accent" style={{ animation: "loading 1s ease-in-out infinite" }} />
-        </div>
-      )}
+      <Topbar title="Order History" onMenuToggle={toggleSidebar} loading={drawerLoading} />
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
         <div className="mb-[14px] flex flex-wrap items-center gap-[7px]">
           {filterTabs.map((tab) => (

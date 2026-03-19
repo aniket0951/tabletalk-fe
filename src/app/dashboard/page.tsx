@@ -75,12 +75,7 @@ export default function DashboardOverview() {
 
   return (
     <>
-      <Topbar title="Dashboard" onMenuToggle={toggleSidebar} />
-      {drawerLoading && (
-        <div className="h-[2px] w-full overflow-hidden bg-border">
-          <div className="h-full w-1/3 bg-accent" style={{ animation: "loading 1s ease-in-out infinite" }} />
-        </div>
-      )}
+      <Topbar title="Dashboard" onMenuToggle={toggleSidebar} loading={drawerLoading} />
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
         {/* Stats */}
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
