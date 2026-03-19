@@ -32,8 +32,13 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       auth: token ? { token } : {},
     });
 
-    s.on("connect", () => setIsConnected(true));
+    s.on("connect", () => {
+      setIsConnected(true);
+    });
     s.on("disconnect", () => setIsConnected(false));
+    s.on("connect_error", (err) => {
+      console.warn("[socket] connection error:", err.message);
+    });
 
     setSocket(s);
 

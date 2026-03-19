@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "../layout";
+import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
 import type { ApiOrderSummary, ApiStaff } from "@/types";
 
@@ -72,6 +73,15 @@ export default function OrdersPage() {
     });
   }
 
+
+  // Live updates: refetch current page when any order changes
+  const handleSocketUpdate = useCallback(() => {
+    refetch({ page });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, activeFilter, staffFilter, search]);
+
+  useSocketEvent("order:updated", handleSocketUpdate);
+  useSocketEvent("order:created", handleSocketUpdate);
 
   function handleFilterChange(value: string) {
     setActiveFilter(value);
