@@ -8,7 +8,7 @@ import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
-import type { ApiStaff, ApiOrder, ApiOrderSummary, StaffRole } from "@/types";
+import type { ApiStaff, ApiOrderSummary, StaffRole } from "@/types";
 
 export default function StaffPage() {
   const toggleSidebar = useSidebarToggle();
@@ -29,7 +29,7 @@ export default function StaffPage() {
   const [staffOrders, setStaffOrders] = useState<ApiOrderSummary[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ApiOrderSummary | null>(null);
   const [dateFilter, setDateFilter] = useState("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -420,7 +420,7 @@ export default function StaffPage() {
                     {isOpen && (orders.length === 0 ? (
                       <div className="border-b border-border px-[18px] py-4 text-center text-xs text-text3">No orders</div>
                     ) : orders.map((order) => (
-                      <div key={order.id} onClick={async () => { try { const r = await apiFetch(`/api/orders/${order.id}`); if (r.ok) setSelectedOrder(await r.json()); } catch {} }} className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background">
+                      <div key={order.id} onClick={() => setSelectedOrder(order)} className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-[13px] font-bold">{order.orderCode}</span>

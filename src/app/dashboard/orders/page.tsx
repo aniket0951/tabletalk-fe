@@ -5,7 +5,7 @@ import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "../layout";
 import { apiFetch } from "@/lib/api";
-import type { ApiOrder, ApiOrderSummary, ApiStaff } from "@/types";
+import type { ApiOrderSummary, ApiStaff } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
   NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
@@ -27,7 +27,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<ApiOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("ALL");
-  const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
+  const [selectedSummary, setSelectedSummary] = useState<ApiOrderSummary | null>(null);
   const [search, setSearch] = useState("");
   const [staffList, setStaffList] = useState<ApiStaff[]>([]);
   const [staffFilter, setStaffFilter] = useState("");
@@ -72,16 +72,6 @@ export default function OrdersPage() {
     });
   }
 
-  const [loadingOrderId, setLoadingOrderId] = useState<string | null>(null);
-
-  async function openOrderDetail(orderId: string) {
-    setLoadingOrderId(orderId);
-    try {
-      const res = await apiFetch(`/api/orders/${orderId}`);
-      if (res.ok) setSelectedOrder(await res.json());
-    } catch {}
-    setLoadingOrderId(null);
-  }
 
   function handleFilterChange(value: string) {
     setActiveFilter(value);
@@ -120,7 +110,7 @@ export default function OrdersPage() {
 
   return (
     <>
-      <Topbar title="Order History" onMenuToggle={toggleSidebar} loading={!!loadingOrderId} />
+      <Topbar title="Order History" onMenuToggle={toggleSidebar} />
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
         <div className="mb-[14px] flex flex-wrap items-center gap-[7px]">
           {filterTabs.map((tab) => (
@@ -179,7 +169,7 @@ export default function OrdersPage() {
                 {orders.map((order) => {
                   const st = statusMap[order.status];
                   return (
-                    <tr key={order.id} onClick={() => openOrderDetail(order.id)} className={`cursor-pointer transition-colors ${loadingOrderId === order.id ? "bg-accent-bg" : "hover:bg-background"}`}>
+                    <tr key={order.id} onClick={() => setSelectedSummary(order)} className="cursor-pointer hover:bg-background">
                       <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs">{order.orderCode}</td>
                       <td className="border-b border-border px-[14px] py-[11px] text-[13px] font-bold">{order.table?.label || "—"}</td>
                       <td className="border-b border-border px-[14px] py-[11px] text-[13px] text-text2">
@@ -198,11 +188,10 @@ export default function OrdersPage() {
                       </td>
                       <td className="border-b border-border px-[14px] py-[11px]">
                         <button
-                          onClick={(e) => { e.stopPropagation(); openOrderDetail(order.id); }}
-                          disabled={loadingOrderId === order.id}
-                          className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2 disabled:opacity-50"
+                          onClick={(e) => { e.stopPropagation(); setSelectedSummary(order); }}
+                          className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
                         >
-                          {loadingOrderId === order.id ? "Loading..." : "View →"}
+                          View →
                         </button>
                       </td>
                     </tr>
@@ -263,16 +252,10 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {loadingOrderId && !selectedOrder && (
-        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-          <div className="rounded-xl bg-surface px-6 py-4 shadow-[0_4px_20px_rgba(0,0,0,.15)] text-sm font-semibold text-text">Loading order details...</div>
-        </div>
-      )}
-
-      {selectedOrder && (
+      {selectedSummary && (
         <OrderDrawer
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
+          order={selectedSummary}
+          onClose={() => setSelectedSummary(null)}
           onOrderUpdate={() => {
             refetch({ page });
           }}
