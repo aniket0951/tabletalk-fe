@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "../layout";
-import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
-import type { ApiOrder, ApiStaff } from "@/types";
+import type { ApiOrder, ApiOrderSummary, ApiStaff } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
   NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
@@ -25,7 +24,7 @@ interface Pagination {
 
 export default function OrdersPage() {
   const toggleSidebar = useSidebarToggle();
-  const [orders, setOrders] = useState<ApiOrder[]>([]);
+  const [orders, setOrders] = useState<ApiOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
@@ -73,21 +72,12 @@ export default function OrdersPage() {
     });
   }
 
-  // Real-time: refresh current page on socket events
-  const handleOrderUpdate = useCallback((updated: ApiOrder) => {
-    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-    if (selectedOrder?.id === updated.id) setSelectedOrder(updated);
-  }, [selectedOrder]);
-
-  const handleOrderCreate = useCallback(() => {
-    // Refetch page 1 to show new order at top
-    refetch({ page: 1 });
-    setPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilter, staffFilter, search]);
-
-  useSocketEvent("order:updated", handleOrderUpdate);
-  useSocketEvent("order:created", handleOrderCreate);
+  async function openOrderDetail(orderId: string) {
+    try {
+      const res = await apiFetch(`/api/orders/${orderId}`);
+      if (res.ok) setSelectedOrder(await res.json());
+    } catch {}
+  }
 
   function handleFilterChange(value: string) {
     setActiveFilter(value);
@@ -185,11 +175,11 @@ export default function OrdersPage() {
                 {orders.map((order) => {
                   const st = statusMap[order.status];
                   return (
-                    <tr key={order.id} onClick={() => setSelectedOrder(order)} className="cursor-pointer hover:bg-background">
+                    <tr key={order.id} onClick={() => openOrderDetail(order.id)} className="cursor-pointer hover:bg-background">
                       <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs">{order.orderCode}</td>
                       <td className="border-b border-border px-[14px] py-[11px] text-[13px] font-bold">{order.table?.label || "—"}</td>
-                      <td className="max-w-[200px] truncate border-b border-border px-[14px] py-[11px] text-[13px] text-text2">
-                        {order.items.map((i) => `${i.menuItem.name}${i.quantity > 1 ? ` ×${i.quantity}` : ""}`).join(", ")}
+                      <td className="border-b border-border px-[14px] py-[11px] text-[13px] text-text2">
+                        {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
                       </td>
                       <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs font-bold">₹{order.total}</td>
                       <td className="border-b border-border px-[14px] py-[11px] text-xs text-text2">{order.staff?.name || "—"}</td>
@@ -204,7 +194,7 @@ export default function OrdersPage() {
                       </td>
                       <td className="border-b border-border px-[14px] py-[11px]">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
+                          onClick={(e) => { e.stopPropagation(); openOrderDetail(order.id); }}
                           className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
                         >
                           View →
@@ -272,9 +262,8 @@ export default function OrdersPage() {
         <OrderDrawer
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
-          onOrderUpdate={(updated) => {
-            setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-            setSelectedOrder(updated);
+          onOrderUpdate={() => {
+            refetch({ page });
           }}
         />
       )}

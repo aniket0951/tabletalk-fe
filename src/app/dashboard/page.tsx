@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "./layout";
-import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
-import type { ApiOrder, DashboardStats } from "@/types";
+import type { ApiOrder, ApiOrderSummary, DashboardStats } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
   NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
@@ -19,19 +18,12 @@ const statusMap: Record<string, { cls: string; label: string }> = {
 
 
 export default function DashboardOverview() {
-  const [orders, setOrders] = useState<ApiOrder[]>([]);
+  const [orders, setOrders] = useState<ApiOrderSummary[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const toggleSidebar = useSidebarToggle();
-
-  const fetchStats = useCallback(() => {
-    apiFetch("/api/dashboard/stats")
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setStats)
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -55,26 +47,12 @@ export default function DashboardOverview() {
       });
   }, []);
 
-  const handleOrderUpdate = useCallback(
-    (updated: ApiOrder) => {
-      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-      if (selectedOrder?.id === updated.id) setSelectedOrder(updated);
-      fetchStats();
-    },
-    [selectedOrder, fetchStats],
-  );
-
-  const handleOrderCreate = useCallback(
-    (created: ApiOrder) => {
-      setOrders((prev) => [created, ...prev]);
-      fetchStats();
-    },
-    [fetchStats],
-  );
-
-  useSocketEvent("order:updated", handleOrderUpdate);
-  useSocketEvent("order:created", handleOrderCreate);
-  useSocketEvent("table:updated", fetchStats);
+  async function openOrderDetail(orderId: string) {
+    try {
+      const res = await apiFetch(`/api/orders/${orderId}`);
+      if (res.ok) setSelectedOrder(await res.json());
+    } catch {}
+  }
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -136,11 +114,7 @@ export default function DashboardOverview() {
           {/* Live Orders */}
           <div className="overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
             <div className="flex items-center justify-between border-b border-border px-[18px] py-[14px]">
-              <div className="text-[13px] font-semibold">🔴 Live Orders</div>
-              <div className="inline-flex items-center gap-[5px] font-mono text-[10px] font-semibold text-green-mid">
-                <div className="h-1.5 w-1.5 animate-blink rounded-full bg-green-mid" />
-                UPDATING
-              </div>
+              <div className="text-[13px] font-semibold">Recent Orders</div>
             </div>
             {loading ? (
               <div className="px-[18px] py-6 text-center text-sm text-text3">
@@ -157,7 +131,7 @@ export default function DashboardOverview() {
                 return (
                   <div
                     key={order.id}
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => openOrderDetail(order.id)}
                     className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background"
                   >
                     <div
@@ -167,15 +141,10 @@ export default function DashboardOverview() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs font-medium">
-                        {order.items
-                          .map(
-                            (i) =>
-                              `${i.menuItem.name}${i.quantity > 1 ? ` ×${i.quantity}` : ""}`,
-                          )
-                          .join(", ")}
+                        {order.orderCode} · {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
                       </div>
                       <div className="mt-[1px] font-mono text-[11px] text-text3">
-                        {order.orderCode} · {timeAgo(order.placedAt)}
+                        {order.table?.label || "—"} · {timeAgo(order.placedAt)}
                       </div>
                     </div>
                     <div className="shrink-0 text-right">

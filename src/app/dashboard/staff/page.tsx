@@ -75,7 +75,7 @@ export default function StaffPage() {
     setEditingId(id);
     setName(s.name);
     setPhone(s.phone);
-    setPin(s.pin);
+    setPin("");
     setRole(s.role);
     setFormError("");
     setShowPin(false);

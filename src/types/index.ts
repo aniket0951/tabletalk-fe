@@ -119,9 +119,24 @@ export interface ApiStaff {
   employeeId: string;
   name: string;
   phone: string;
-  pin: string;
   role: StaffRole;
   restaurantId: string;
+  createdAt?: string;
+}
+
+// Lean order for list views — no nested items/full objects
+export interface ApiOrderSummary {
+  id: string;
+  orderCode: string;
+  status: OrderStatus;
+  total: number;
+  placedAt: string;
+  customerName: string;
+  customerPhone: string;
+  staffId: string | null;
+  table: { label: string; tableNumber: number };
+  staff: { name: string } | null;
+  _count: { items: number };
 }
 
 export interface ApiCustomer {
@@ -134,13 +149,14 @@ export interface ApiCustomer {
   restaurantId: string;
 }
 
+// Full order for detail/drawer views
 export interface ApiOrder {
   id: string;
   orderCode: string;
   tableId: string;
   restaurantId: string;
   staffId: string | null;
-  staff: ApiStaff | null;
+  staff: { id: string; name: string; role: string } | null;
   customerPhone: string;
   customerName: string;
   customerId: string | null;
