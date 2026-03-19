@@ -167,6 +167,9 @@ export default function StaffOrdersPage() {
         body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {
+        const updated = await res.json();
+        // Update local state immediately — don't wait for socket
+        setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
         showToast(label);
       } else {
         showToast("Failed to update order");
