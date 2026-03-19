@@ -6,6 +6,18 @@ import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
 import type { ApiOrder, OrderStatus } from "@/types";
 
+// Lean type matching what GET /staff/orders returns
+interface StaffOrder {
+  id: string;
+  orderCode: string;
+  status: OrderStatus;
+  total: number;
+  placedAt: string;
+  staffId: string | null;
+  table: { label: string };
+  items: { quantity: number; menuItem: { name: string; type: string } }[];
+}
+
 const statusMap: Record<string, { cls: string; label: string }> = {
   NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
   COOKING: { cls: "bg-amber-bg text-amber", label: "COOKING" },
@@ -44,12 +56,12 @@ function nextAction(status: OrderStatus): { nextStatus: string; label: string; c
 
 export default function StaffOrdersPage() {
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<ApiOrder[]>([]);
+  const [orders, setOrders] = useState<StaffOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("ALL");
 
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
-  const [historyOrders, setHistoryOrders] = useState<ApiOrder[]>([]);
+  const [historyOrders, setHistoryOrders] = useState<StaffOrder[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyFilter, setHistoryFilter] = useState("ALL");
   const [dateFilter, setDateFilter] = useState("today");
@@ -73,19 +85,35 @@ export default function StaffOrdersPage() {
     return null;
   }, []);
 
+  // Convert full socket order to lean StaffOrder shape
+  function toStaffOrder(o: ApiOrder): StaffOrder {
+    return {
+      id: o.id,
+      orderCode: o.orderCode,
+      status: o.status,
+      total: o.total,
+      placedAt: o.placedAt,
+      staffId: o.staffId,
+      table: { label: o.table?.label || "—" },
+      items: o.items?.map((i) => ({
+        quantity: i.quantity,
+        menuItem: { name: i.menuItem.name, type: i.menuItem.type },
+      })) || [],
+    };
+  }
+
   const handleOrderUpdate = useCallback((updated: ApiOrder) => {
     const myId = getMyStaffId();
     if (!myId) return;
+    const lean = toStaffOrder(updated);
 
     setOrders((prev) => {
       const exists = prev.some((o) => o.id === updated.id);
 
       if (updated.staffId === myId) {
-        // Assigned to me — add if not in list, update if already there
-        if (exists) return prev.map((o) => (o.id === updated.id ? updated : o));
-        return [updated, ...prev];
+        if (exists) return prev.map((o) => (o.id === updated.id ? lean : o));
+        return [lean, ...prev];
       } else {
-        // Not assigned to me — remove if was in my list, otherwise ignore
         if (exists) return prev.filter((o) => o.id !== updated.id);
         return prev;
       }
@@ -95,7 +123,7 @@ export default function StaffOrdersPage() {
   const handleOrderCreate = useCallback((created: ApiOrder) => {
     const myId = getMyStaffId();
     if (myId && created.staffId === myId) {
-      setOrders((prev) => [created, ...prev]);
+      setOrders((prev) => [toStaffOrder(created), ...prev]);
     }
   }, [getMyStaffId]);
 
