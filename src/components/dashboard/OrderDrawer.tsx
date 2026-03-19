@@ -23,7 +23,7 @@ const statusMap: Record<string, { cls: string; label: string }> = {
 
 const timeline = [
   { key: "placedAt", label: "Order Placed", icon: "📱" },
-  { key: "confirmedAt", label: "Confirmed", icon: "✓" },
+  { key: "confirmedAt", label: "Confirmed", icon: "✅" },
   { key: "cookingAt", label: "Kitchen Cooking", icon: "🍳" },
   { key: "readyAt", label: "Ready to Serve", icon: "🔔" },
   { key: "billedAt", label: "Bill Sent", icon: "🧾" },
