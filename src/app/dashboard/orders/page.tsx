@@ -265,6 +265,7 @@ export default function OrdersPage() {
           onOrderUpdate={() => {
             refetch({ page });
           }}
+          staffList={staffList}
         />
       )}
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
 import type { ApiOrder, ApiStaff } from "@/types";
@@ -9,6 +9,7 @@ interface OrderDrawerProps {
   order: ApiOrder | null;
   onClose: () => void;
   onOrderUpdate?: (order: ApiOrder) => void;
+  staffList?: ApiStaff[];
 }
 
 const statusMap: Record<string, { cls: string; label: string }> = {
@@ -36,21 +37,10 @@ function formatTime(dateStr: string | null) {
   return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-export default function OrderDrawer({ order, onClose, onOrderUpdate }: OrderDrawerProps) {
+export default function OrderDrawer({ order, onClose, onOrderUpdate, staffList = [] }: OrderDrawerProps) {
   const { showToast } = useToast();
-  const [staffList, setStaffList] = useState<ApiStaff[]>([]);
   const [assigningStaff, setAssigningStaff] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-
-  const orderId = order?.id;
-  useEffect(() => {
-    if (orderId) {
-      apiFetch("/api/staff")
-        .then((r) => r.json())
-        .then((data) => { if (Array.isArray(data)) setStaffList(data); })
-        .catch(() => {});
-    }
-  }, [orderId]);
 
   if (!order) return null;
 
