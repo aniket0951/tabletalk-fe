@@ -5,7 +5,15 @@ import Link from "next/link";
 import { publicFetch } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
 import { useTableInfo } from "./layout";
-import type { ApiMenuCategory, ApiMenuItem } from "@/types";
+import type { ApiMenuItem } from "@/types";
+
+interface CategorySummary {
+  id: string;
+  name: string;
+  emoji: string;
+  sortOrder: number;
+  _count: { items: number };
+}
 
 export default function MenuPage({
   params,
@@ -16,11 +24,14 @@ export default function MenuPage({
   const tableInfo = useTableInfo();
   const { items: cartItems, addItem, removeItem, totalItems, subtotal } = useCart();
 
-  const [categories, setCategories] = useState<ApiMenuCategory[]>([]);
+  const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [categoryItems, setCategoryItems] = useState<Record<string, ApiMenuItem[]>>({});
+  const [loadingCategory, setLoadingCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [restaurantId, setRestaurantId] = useState("");
+
   type Review = { rating: number; note: string; createdAt: string; customer: { name: string } };
   const [reviewsModal, setReviewsModal] = useState<{ itemId: string; itemName: string; reviews: Review[]; page: number; totalPages: number; starFilter: number | null } | null>(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -53,36 +64,57 @@ export default function MenuPage({
     fetchReviews(itemId, itemName, 1, null);
   };
 
+  // Fetch categories only (lightweight)
   useEffect(() => {
     if (!tableInfo?.restaurant?.id) return;
-    setRestaurantId(tableInfo.restaurant.id);
-    publicFetch(`/public/menu/${tableInfo.restaurant.id}`)
+    const rid = tableInfo.restaurant.id;
+    setRestaurantId(rid);
+    publicFetch(`/public/menu/${rid}`)
       .then((r) => r.json())
-      .then((cats: ApiMenuCategory[]) => {
+      .then((cats: CategorySummary[]) => {
         setCategories(cats);
-        if (cats.length > 0) setActiveCategory(cats[0].id);
+        if (cats.length > 0) {
+          setActiveCategory(cats[0].id);
+          fetchCategoryItems(rid, cats[0].id);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [tableInfo]);
 
+  // Fetch items for a single category (cached in state)
+  function fetchCategoryItems(rid: string, catId: string) {
+    if (categoryItems[catId]) return; // already cached
+    setLoadingCategory(catId);
+    publicFetch(`/public/menu/${rid}/category/${catId}`)
+      .then((r) => r.json())
+      .then((items: ApiMenuItem[]) => {
+        setCategoryItems((prev) => ({ ...prev, [catId]: items }));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCategory(null));
+  }
+
+  function handleCategoryChange(catId: string) {
+    setActiveCategory(catId);
+    fetchCategoryItems(restaurantId, catId);
+  }
+
   const getItemQty = (menuItemId: string) =>
     cartItems.find((i) => i.menuItemId === menuItemId)?.quantity || 0;
 
-  const filteredCategories = search.trim()
-    ? categories
-        .map((cat) => ({
-          ...cat,
-          items: cat.items.filter((item) =>
-            item.name.toLowerCase().includes(search.toLowerCase())
-          ),
-        }))
-        .filter((cat) => cat.items.length > 0)
-    : categories;
+  // For search: search across all loaded categories
+  const allLoadedItems = Object.entries(categoryItems).flatMap(([catId, items]) => {
+    const cat = categories.find((c) => c.id === catId);
+    return items.map((item) => ({ ...item, catName: cat?.name || "", catEmoji: cat?.emoji || "" }));
+  });
 
-  const displayCategories = search.trim()
-    ? filteredCategories
-    : filteredCategories.filter((cat) => cat.id === activeCategory);
+  const searchResults = search.trim()
+    ? allLoadedItems.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()))
+    : [];
+
+  // Current category items
+  const currentItems = activeCategory ? categoryItems[activeCategory] || [] : [];
 
   if (loading) {
     return <div className="py-12 text-center text-sm text-text3">Loading menu...</div>;
@@ -96,7 +128,13 @@ export default function MenuPage({
           type="text"
           placeholder="Search menu..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            // Load all categories for search if not loaded
+            if (e.target.value.trim()) {
+              categories.forEach((cat) => fetchCategoryItems(restaurantId, cat.id));
+            }
+          }}
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
         />
       </div>
@@ -107,112 +145,60 @@ export default function MenuPage({
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => handleCategoryChange(cat.id)}
               className={`shrink-0 rounded-2xl border px-3 py-1.5 text-xs font-semibold transition-all ${
                 activeCategory === cat.id
                   ? "border-accent bg-accent-bg text-accent"
                   : "border-border bg-surface text-text2 hover:bg-surface2"
               }`}
             >
-              {cat.emoji} {cat.name}
+              {cat.emoji} {cat.name} ({cat._count.items})
             </button>
           ))}
         </div>
       )}
 
       {/* Items */}
-      {displayCategories.map((cat) => (
-        <div key={cat.id} className="px-4 pt-3">
-          {search.trim() && (
-            <div className="mb-2 text-xs font-semibold text-text2">
-              {cat.emoji} {cat.name}
+      {search.trim() ? (
+        // Search results across all loaded categories
+        <div className="px-4 pt-3">
+          {searchResults.length === 0 ? (
+            <div className="py-8 text-center text-sm text-text3">No items found</div>
+          ) : (
+            <div className="space-y-2">
+              {searchResults.map((item) => (
+                <ItemCard key={item.id} item={item} qty={getItemQty(item.id)} addItem={addItem} removeItem={removeItem} openReviews={openReviews} />
+              ))}
             </div>
           )}
-          <div className="space-y-2">
-            {cat.items.map((item: ApiMenuItem) => {
-              const qty = getItemQty(item.id);
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-[10px] border border-border bg-surface p-3 shadow-[0_1px_3px_rgba(0,0,0,.07)]"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`inline-block h-2.5 w-2.5 shrink-0 rounded-sm border ${
-                          item.type === "VEG"
-                            ? "border-green-mid bg-green-mid"
-                            : "border-red bg-red"
-                        }`}
-                      />
-                      <span className="truncate text-sm font-semibold">{item.name}</span>
-                    </div>
-                    {item.description && (
-                      <div className="mt-0.5 truncate text-xs text-text3">{item.description}</div>
-                    )}
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-sm font-bold text-accent">₹{item.price}</span>
-                      {item.averageRating !== undefined && item.ratingCount !== undefined && item.ratingCount > 0 && (
-                        <button
-                          onClick={() => openReviews(item.id, item.name)}
-                          className="flex items-center gap-0.5 text-xs text-text3"
-                        >
-                          <span className="text-amber-400">★</span>
-                          <span className="font-semibold text-text2">{item.averageRating.toFixed(1)}</span>
-                          <span>({item.ratingCount})</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="shrink-0">
-                    {qty === 0 ? (
-                      <button
-                        onClick={() =>
-                          addItem({
-                            menuItemId: item.id,
-                            name: item.name,
-                            price: item.price,
-                            type: item.type,
-                          })
-                        }
-                        className="rounded-lg border border-accent bg-transparent px-4 py-1.5 text-xs font-bold text-accent transition-all hover:bg-accent-bg"
-                      >
-                        ADD
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2 rounded-lg border border-accent bg-accent-bg px-1">
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="px-1.5 py-1 text-sm font-bold text-accent"
-                        >
-                          −
-                        </button>
-                        <span className="min-w-[16px] text-center text-sm font-bold text-accent">
-                          {qty}
-                        </span>
-                        <button
-                          onClick={() =>
-                            addItem({
-                              menuItemId: item.id,
-                              name: item.name,
-                              price: item.price,
-                              type: item.type,
-                            })
-                          }
-                          className="px-1.5 py-1 text-sm font-bold text-accent"
-                        >
-                          +
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
-      ))}
+      ) : (
+        // Single category view
+        <div className="px-4 pt-3">
+          {loadingCategory === activeCategory ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-[10px] border border-border bg-surface p-3">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-28 rounded bg-border animate-pulse" />
+                    <div className="h-2 w-40 rounded bg-border animate-pulse" />
+                    <div className="h-3 w-12 rounded bg-border animate-pulse" />
+                  </div>
+                  <div className="h-8 w-16 rounded-lg bg-border animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : currentItems.length === 0 ? (
+            <div className="py-8 text-center text-sm text-text3">No items in this category</div>
+          ) : (
+            <div className="space-y-2">
+              {currentItems.map((item) => (
+                <ItemCard key={item.id} item={item} qty={getItemQty(item.id)} addItem={addItem} removeItem={removeItem} openReviews={openReviews} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {categories.length === 0 && (
         <div className="py-12 text-center text-sm text-text3">No menu items available</div>
@@ -233,14 +219,11 @@ export default function MenuPage({
               <button onClick={() => setReviewsModal(null)} className="text-lg text-text3">✕</button>
             </div>
 
-            {/* Star filter pills */}
             <div className="flex gap-1.5 overflow-x-auto border-b border-border px-4 py-2 scrollbar-none">
               <button
                 onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, null)}
                 className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${
-                  reviewsModal.starFilter === null
-                    ? "border-accent bg-accent-bg text-accent"
-                    : "border-border bg-surface text-text2"
+                  reviewsModal.starFilter === null ? "border-accent bg-accent-bg text-accent" : "border-border bg-surface text-text2"
                 }`}
               >
                 All
@@ -250,9 +233,7 @@ export default function MenuPage({
                   key={star}
                   onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, star)}
                   className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${
-                    reviewsModal.starFilter === star
-                      ? "border-accent bg-accent-bg text-accent"
-                      : "border-border bg-surface text-text2"
+                    reviewsModal.starFilter === star ? "border-accent bg-accent-bg text-accent" : "border-border bg-surface text-text2"
                   }`}
                 >
                   {star} ★
@@ -283,8 +264,6 @@ export default function MenuPage({
                       <div className="mt-1 text-[10px] text-text3">{review.customer.name || "Customer"}</div>
                     </div>
                   ))}
-
-                  {/* Load more */}
                   {reviewsModal.page < reviewsModal.totalPages && (
                     <button
                       onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, reviewsModal.page + 1, reviewsModal.starFilter)}
@@ -317,6 +296,59 @@ export default function MenuPage({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Extracted item card component to avoid repetition
+function ItemCard({
+  item,
+  qty,
+  addItem,
+  removeItem,
+  openReviews,
+}: {
+  item: ApiMenuItem;
+  qty: number;
+  addItem: (item: Omit<import("@/contexts/CartContext").CartItem, "quantity">) => void;
+  removeItem: (id: string) => void;
+  openReviews: (id: string, name: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-[10px] border border-border bg-surface p-3 shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-sm border ${item.type === "VEG" ? "border-green-mid bg-green-mid" : "border-red bg-red"}`} />
+          <span className="truncate text-sm font-semibold">{item.name}</span>
+        </div>
+        {item.description && <div className="mt-0.5 truncate text-xs text-text3">{item.description}</div>}
+        <div className="mt-1 flex items-center gap-2">
+          <span className="text-sm font-bold text-accent">₹{item.price}</span>
+          {item.averageRating !== undefined && item.ratingCount !== undefined && item.ratingCount > 0 && (
+            <button onClick={() => openReviews(item.id, item.name)} className="flex items-center gap-0.5 text-xs text-text3">
+              <span className="text-amber-400">★</span>
+              <span className="font-semibold text-text2">{item.averageRating.toFixed(1)}</span>
+              <span>({item.ratingCount})</span>
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="shrink-0">
+        {qty === 0 ? (
+          <button
+            onClick={() => addItem({ menuItemId: item.id, name: item.name, price: item.price, type: item.type })}
+            className="rounded-lg border border-accent bg-transparent px-4 py-1.5 text-xs font-bold text-accent transition-all hover:bg-accent-bg"
+          >
+            ADD
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-accent bg-accent-bg px-1">
+            <button onClick={() => removeItem(item.id)} className="px-1.5 py-1 text-sm font-bold text-accent">−</button>
+            <span className="min-w-[16px] text-center text-sm font-bold text-accent">{qty}</span>
+            <button onClick={() => addItem({ menuItemId: item.id, name: item.name, price: item.price, type: item.type })} className="px-1.5 py-1 text-sm font-bold text-accent">+</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
