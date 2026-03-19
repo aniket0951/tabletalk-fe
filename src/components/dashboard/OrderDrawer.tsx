@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
-import type { ApiOrder, ApiStaff } from "@/types";
+import type { ApiOrder } from "@/types";
 
 interface OrderDrawerProps {
   order: ApiOrder | null;
   onClose: () => void;
   onOrderUpdate?: (order: ApiOrder) => void;
-  staffList?: ApiStaff[];
 }
 
 const statusMap: Record<string, { cls: string; label: string }> = {
@@ -37,9 +36,8 @@ function formatTime(dateStr: string | null) {
   return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-export default function OrderDrawer({ order, onClose, onOrderUpdate, staffList = [] }: OrderDrawerProps) {
+export default function OrderDrawer({ order, onClose, onOrderUpdate }: OrderDrawerProps) {
   const { showToast } = useToast();
-  const [assigningStaff, setAssigningStaff] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   if (!order) return null;
@@ -76,27 +74,6 @@ export default function OrderDrawer({ order, onClose, onOrderUpdate, staffList =
     }
     setActionLoading(false);
     onClose();
-  }
-
-  async function handleStaffAssign(staffId: string) {
-    setAssigningStaff(true);
-    try {
-      const res = await apiFetch(`/api/orders/${order!.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ staffId: staffId || null }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        onOrderUpdate?.(updated);
-        const staffName = staffList.find((s) => s.id === staffId)?.name;
-        showToast(staffId ? `Assigned to ${staffName}` : "Staff unassigned");
-      } else {
-        showToast("Failed to assign staff");
-      }
-    } catch {
-      showToast("Failed to assign staff");
-    }
-    setAssigningStaff(false);
   }
 
   return (
@@ -138,20 +115,7 @@ export default function OrderDrawer({ order, onClose, onOrderUpdate, staffList =
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Table</span><span className="text-xs font-semibold">{order.table?.label || "—"}</span></div>
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Phone</span><span className="font-mono text-xs font-semibold">{order.customerPhone}</span></div>
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Placed at</span><span className="font-mono text-xs font-semibold">{formatTime(order.placedAt)}</span></div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-xs text-text2">Assigned to</span>
-              <select
-                className="rounded-[5px] border border-border bg-surface px-2 py-[3px] text-xs font-semibold outline-none focus:border-accent"
-                value={order.staffId || ""}
-                onChange={(e) => handleStaffAssign(e.target.value)}
-                disabled={assigningStaff}
-              >
-                <option value="">Unassigned</option>
-                {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
-                ))}
-              </select>
-            </div>
+            <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Assigned to</span><span className="text-xs font-semibold">{order.staff ? `${order.staff.name} (${order.staff.role})` : "Unassigned"}</span></div>
             {order.specialNote && (
               <div className="flex justify-between"><span className="text-xs text-text2">Note</span><span className="text-xs font-semibold italic text-amber">&quot;{order.specialNote}&quot;</span></div>
             )}
