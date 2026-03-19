@@ -9,7 +9,6 @@ interface OrderDrawerProps {
   /** Pass full order OR just a summary — drawer fetches detail if needed */
   order: ApiOrder | ApiOrderSummary | null;
   onClose: () => void;
-  onOrderUpdate?: (order: ApiOrder) => void;
   staffList?: ApiStaff[];
 }
 
@@ -46,7 +45,7 @@ function SkeletonLine({ w = "w-24" }: { w?: string }) {
   return <div className={`h-3 ${w} rounded bg-border animate-pulse`} />;
 }
 
-export default function OrderDrawer({ order: input, onClose, onOrderUpdate, staffList = [] }: OrderDrawerProps) {
+export default function OrderDrawer({ order: input, onClose, staffList = [] }: OrderDrawerProps) {
   const { showToast } = useToast();
   const [detail, setDetail] = useState<ApiOrder | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -92,7 +91,7 @@ export default function OrderDrawer({ order: input, onClose, onOrderUpdate, staf
       });
       if (res.ok) {
         const updated = await res.json();
-        onOrderUpdate?.(updated);
+
         showToast(label);
       } else {
         showToast("Failed to update order");
@@ -114,7 +113,7 @@ export default function OrderDrawer({ order: input, onClose, onOrderUpdate, staf
       if (res.ok) {
         const updated = await res.json();
         setDetail(updated);
-        onOrderUpdate?.(updated);
+
         const staffName = staffList.find((s) => s.id === staffId)?.name;
         showToast(staffId ? `Assigned to ${staffName}` : "Staff unassigned");
       } else {

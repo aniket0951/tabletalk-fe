@@ -448,9 +448,6 @@ export default function StaffPage() {
         <OrderDrawer
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
-          onOrderUpdate={() => {
-            if (selectedStaff) fetchStaffOrders(selectedStaff.id, dateFilter);
-          }}
         />
       )}
     </>

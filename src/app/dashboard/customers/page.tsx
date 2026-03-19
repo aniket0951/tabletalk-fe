@@ -286,9 +286,6 @@ export default function CustomersPage() {
         <OrderDrawer
           order={selectedSummary}
           onClose={() => setSelectedSummary(null)}
-          onOrderUpdate={() => {
-            if (selectedCustomer) openCustomerOrders(selectedCustomer);
-          }}
         />
       )}
     </>

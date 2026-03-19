@@ -291,9 +291,6 @@ export default function OrdersPage() {
         <OrderDrawer
           order={selectedSummary}
           onClose={() => setSelectedSummary(null)}
-          onOrderUpdate={() => {
-            refetch({ page });
-          }}
           staffList={staffList}
         />
       )}
