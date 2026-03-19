@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { publicFetch } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
 import { useTableInfo } from "./layout";
-import type { ApiMenuItem } from "@/types";
+import type { ApiMenuItem, ApiOrder } from "@/types";
 
 interface CategorySummary {
   id: string;
@@ -23,6 +24,13 @@ export default function MenuPage({
   const { tableId } = use(params);
   const tableInfo = useTableInfo();
   const { items: cartItems, addItem, removeItem, totalItems, subtotal } = useCart();
+
+  const router = useRouter();
+  const [activeOrder, setActiveOrder] = useState<ApiOrder | null>(null);
+  const [checkingOrder, setCheckingOrder] = useState(true);
+  const [phoneLookup, setPhoneLookup] = useState("");
+  const [phoneLookupLoading, setPhoneLookupLoading] = useState(false);
+  const [phoneLookupResult, setPhoneLookupResult] = useState<ApiOrder[] | null>(null);
 
   const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -64,6 +72,19 @@ export default function MenuPage({
     fetchReviews(itemId, itemName, 1, null);
   };
 
+  // Check for active order on this table first
+  useEffect(() => {
+    publicFetch(`/public/orders/active/${tableId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.active && data.order) {
+          setActiveOrder(data.order);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingOrder(false));
+  }, [tableId]);
+
   // Fetch categories only (lightweight)
   useEffect(() => {
     if (!tableInfo?.restaurant?.id) return;
@@ -100,6 +121,19 @@ export default function MenuPage({
     fetchCategoryItems(restaurantId, catId);
   }
 
+  async function lookupByPhone() {
+    if (!phoneLookup.trim()) return;
+    setPhoneLookupLoading(true);
+    try {
+      const res = await publicFetch(`/public/orders/active-by-phone/${encodeURIComponent(phoneLookup.trim())}`);
+      const data = await res.json();
+      setPhoneLookupResult(data.orders || []);
+    } catch {
+      setPhoneLookupResult([]);
+    }
+    setPhoneLookupLoading(false);
+  }
+
   const getItemQty = (menuItemId: string) =>
     cartItems.find((i) => i.menuItemId === menuItemId)?.quantity || 0;
 
@@ -116,12 +150,98 @@ export default function MenuPage({
   // Current category items
   const currentItems = activeCategory ? categoryItems[activeCategory] || [] : [];
 
-  if (loading) {
-    return <div className="py-12 text-center text-sm text-text3">Loading menu...</div>;
+  if (checkingOrder || loading) {
+    return <div className="py-12 text-center text-sm text-text3">Loading...</div>;
   }
 
   return (
     <div className="animate-fadeIn pb-24">
+      {/* Active order banner */}
+      {activeOrder && (
+        <div className="mx-4 mt-3 rounded-[10px] border border-accent-border bg-accent-bg p-4">
+          <div className="mb-1 text-sm font-bold">Your order is being prepared</div>
+          <div className="mb-2 text-xs text-text2">
+            {activeOrder.orderCode} · {activeOrder.items?.length || 0} item{(activeOrder.items?.length || 0) !== 1 ? "s" : ""} · ₹{activeOrder.total}
+          </div>
+          <div className="mb-3">
+            <span className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${
+              activeOrder.status === "NEW" ? "bg-new-bg text-accent"
+              : activeOrder.status === "COOKING" ? "bg-amber-bg text-amber"
+              : activeOrder.status === "READY" ? "bg-green-bg text-green-mid"
+              : "bg-blue-bg text-blue"
+            }`}>
+              {activeOrder.status === "NEW" ? "Order placed" : activeOrder.status === "COOKING" ? "Being cooked" : activeOrder.status === "READY" ? "Ready to serve" : "Bill sent"}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href={`/order/${tableId}/status/${activeOrder.id}`}
+              className="flex-1 rounded-lg bg-accent px-4 py-2 text-center text-xs font-semibold text-white hover:bg-accent2"
+            >
+              Track Order →
+            </Link>
+            <button
+              onClick={() => setActiveOrder(null)}
+              className="rounded-lg border border-border px-4 py-2 text-xs font-semibold text-text2 hover:bg-surface2"
+            >
+              New Order
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Track order by phone */}
+      {!activeOrder && (
+        <div className="mx-4 mt-3 rounded-[10px] border border-border bg-surface p-3">
+          <div className="mb-2 text-xs font-semibold text-text2">Already ordered? Track by phone number</div>
+          <div className="flex gap-2">
+            <input
+              type="tel"
+              placeholder="Enter your phone number"
+              value={phoneLookup}
+              onChange={(e) => { setPhoneLookup(e.target.value); setPhoneLookupResult(null); }}
+              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
+            />
+            <button
+              onClick={lookupByPhone}
+              disabled={phoneLookupLoading || !phoneLookup.trim()}
+              className="shrink-0 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent2 disabled:opacity-50"
+            >
+              {phoneLookupLoading ? "..." : "Track"}
+            </button>
+          </div>
+          {phoneLookupResult !== null && (
+            <div className="mt-2">
+              {phoneLookupResult.length === 0 ? (
+                <div className="text-xs text-text3">No active orders found for this number</div>
+              ) : (
+                <div className="space-y-2">
+                  {phoneLookupResult.map((o) => (
+                    <Link
+                      key={o.id}
+                      href={`/order/${tableId}/status/${o.id}`}
+                      className="flex items-center justify-between rounded-lg border border-accent-border bg-accent-bg p-3 transition-all hover:border-accent"
+                    >
+                      <div>
+                        <div className="text-xs font-bold">{o.orderCode} · {o.table?.label}</div>
+                        <div className="mt-0.5 text-[11px] text-text2">₹{o.total}</div>
+                      </div>
+                      <span className={`rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold ${
+                        o.status === "COOKING" ? "bg-amber-bg text-amber"
+                        : o.status === "READY" ? "bg-green-bg text-green-mid"
+                        : "bg-new-bg text-accent"
+                      }`}>
+                        {o.status}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Search */}
       <div className="px-4 pt-3 pb-2">
         <input
