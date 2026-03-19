@@ -28,6 +28,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [staffList, setStaffList] = useState<ApiStaff[]>([]);
   const [staffFilter, setStaffFilter] = useState("");
@@ -73,10 +74,12 @@ export default function OrdersPage() {
   }
 
   async function openOrderDetail(orderId: string) {
+    setDrawerLoading(true);
     try {
       const res = await apiFetch(`/api/orders/${orderId}`);
       if (res.ok) setSelectedOrder(await res.json());
     } catch {}
+    setDrawerLoading(false);
   }
 
   function handleFilterChange(value: string) {
@@ -117,6 +120,11 @@ export default function OrdersPage() {
   return (
     <>
       <Topbar title="Order History" onMenuToggle={toggleSidebar} />
+      {drawerLoading && (
+        <div className="h-[2px] w-full overflow-hidden bg-border">
+          <div className="h-full w-1/3 animate-[loading_1s_ease-in-out_infinite] bg-accent" style={{ animation: "loading 1s ease-in-out infinite" }} />
+        </div>
+      )}
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
         <div className="mb-[14px] flex flex-wrap items-center gap-[7px]">
           {filterTabs.map((tab) => (

@@ -22,6 +22,7 @@ export default function DashboardOverview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [drawerLoading, setDrawerLoading] = useState(false);
   const router = useRouter();
   const toggleSidebar = useSidebarToggle();
 
@@ -48,10 +49,12 @@ export default function DashboardOverview() {
   }, []);
 
   async function openOrderDetail(orderId: string) {
+    setDrawerLoading(true);
     try {
       const res = await apiFetch(`/api/orders/${orderId}`);
       if (res.ok) setSelectedOrder(await res.json());
     } catch {}
+    setDrawerLoading(false);
   }
 
   const [now, setNow] = useState(Date.now());
@@ -73,6 +76,11 @@ export default function DashboardOverview() {
   return (
     <>
       <Topbar title="Dashboard" onMenuToggle={toggleSidebar} />
+      {drawerLoading && (
+        <div className="h-[2px] w-full overflow-hidden bg-border">
+          <div className="h-full w-1/3 bg-accent" style={{ animation: "loading 1s ease-in-out infinite" }} />
+        </div>
+      )}
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
         {/* Stats */}
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
