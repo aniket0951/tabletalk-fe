@@ -27,7 +27,7 @@ export default function OrdersPage() {
   const toggleSidebar = useSidebarToggle();
   const [orders, setOrders] = useState<ApiOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState("ALL");
+  const [activeFilter, setActiveFilter] = useState("NEW");
   const [selectedSummary, setSelectedSummary] = useState<ApiOrderSummary | null>(null);
   const [search, setSearch] = useState("");
   const [staffList, setStaffList] = useState<ApiStaff[]>([]);
@@ -57,7 +57,7 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    fetchOrders({ page: 1 });
+    fetchOrders({ page: 1, status: "NEW" });
     apiFetch("/api/staff")
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setStaffList(data); })
