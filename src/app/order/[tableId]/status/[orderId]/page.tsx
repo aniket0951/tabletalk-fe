@@ -303,7 +303,7 @@ export default function OrderStatusPage({
                   )}
                 </div>
 
-                {/* Label + time */}
+                {/* Label + time + staff */}
                 <div className={`pb-3 ${isLast ? "pb-0" : ""}`}>
                   <div
                     className={`text-sm font-semibold ${
@@ -318,6 +318,11 @@ export default function OrderStatusPage({
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                    </div>
+                  )}
+                  {step.key === "NEW" && order.staff && (
+                    <div className="mt-1 inline-flex items-center gap-1 rounded-[5px] bg-accent-bg px-2 py-0.5 text-[11px] font-semibold text-accent">
+                      👤 {order.staff.name} is handling your order
                     </div>
                   )}
                 </div>
