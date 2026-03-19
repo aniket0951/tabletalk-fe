@@ -263,6 +263,12 @@ export default function OrdersPage() {
         )}
       </div>
 
+      {loadingOrderId && !selectedOrder && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+          <div className="rounded-xl bg-surface px-6 py-4 shadow-[0_4px_20px_rgba(0,0,0,.15)] text-sm font-semibold text-text">Loading order details...</div>
+        </div>
+      )}
+
       {selectedOrder && (
         <OrderDrawer
           order={selectedOrder}
