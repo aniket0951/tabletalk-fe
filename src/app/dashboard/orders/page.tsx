@@ -6,7 +6,7 @@ import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "../layout";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
-import type { ApiOrderSummary, ApiStaff } from "@/types";
+import type { ApiOrder, ApiOrderSummary, ApiStaff } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
   NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
@@ -74,14 +74,39 @@ export default function OrdersPage() {
   }
 
 
-  // Live updates: refetch current page when any order changes
-  const handleSocketUpdate = useCallback(() => {
-    refetch({ page });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, activeFilter, staffFilter, search]);
+  // Convert full socket order to lean summary
+  function toSummary(o: ApiOrder): ApiOrderSummary {
+    return {
+      id: o.id,
+      orderCode: o.orderCode,
+      status: o.status,
+      total: o.total,
+      placedAt: o.placedAt,
+      customerName: o.customerName,
+      customerPhone: o.customerPhone,
+      staffId: o.staffId,
+      table: { label: o.table?.label || "—", tableNumber: o.table?.tableNumber || 0 },
+      staff: o.staff ? { name: o.staff.name } : null,
+      _count: { items: o.items?.length || 0 },
+    };
+  }
+
+  // Live updates: update in place from socket data, no API call
+  const handleSocketUpdate = useCallback((updated: ApiOrder) => {
+    const summary = toSummary(updated);
+    setOrders((prev) => {
+      const exists = prev.some((o) => o.id === updated.id);
+      if (exists) return prev.map((o) => (o.id === updated.id ? summary : o));
+      return prev;
+    });
+  }, []);
+
+  const handleSocketCreate = useCallback((created: ApiOrder) => {
+    setOrders((prev) => [toSummary(created), ...prev]);
+  }, []);
 
   useSocketEvent("order:updated", handleSocketUpdate);
-  useSocketEvent("order:created", handleSocketUpdate);
+  useSocketEvent("order:created", handleSocketCreate);
 
   function handleFilterChange(value: string) {
     setActiveFilter(value);
