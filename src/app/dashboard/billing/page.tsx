@@ -104,16 +104,19 @@ export default function BillingPage() {
     setCancelLoading(false);
   }
 
+  const isActive = subscriptionStatus === "ACTIVE";
+  const isTrial = subscriptionStatus === "TRIAL";
+  const hasActiveSub = isActive || isTrial;
+  const isInactive = !hasActiveSub;
+
   function getPlanAction(planKey: PlanType) {
-    if (planKey === subscriptionPlan) return "current";
-    if (!subscriptionPlan) return "subscribe";
+    // Only mark as "current" if subscription is actually active/trial
+    if (planKey === subscriptionPlan && hasActiveSub) return "current";
+    // If no active subscription, all plans show "subscribe"
+    if (!subscriptionPlan || !hasActiveSub) return "subscribe";
     const order = ["STARTER", "GROWTH", "MULTI"];
     return order.indexOf(planKey) > order.indexOf(subscriptionPlan) ? "upgrade" : "downgrade";
   }
-
-  const isActive = subscriptionStatus === "ACTIVE";
-  const isTrial = subscriptionStatus === "TRIAL";
-  const isInactive = !isTrial && !isActive;
 
   return (
     <>

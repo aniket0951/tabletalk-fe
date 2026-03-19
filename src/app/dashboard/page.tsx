@@ -30,9 +30,7 @@ export default function DashboardOverview() {
     apiFetch("/api/dashboard/stats")
       .then((r) => (r.ok ? r.json() : null))
       .then(setStats)
-      .catch((r) => {
-        console.log("Response Error :", r);
-      });
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -52,8 +50,7 @@ export default function DashboardOverview() {
         setStats(statsData);
         setLoading(false);
       })
-      .catch((error) => {
-        console.log("Dashboard fetch error:", error);
+      .catch(() => {
         setLoading(false);
       });
   }, []);

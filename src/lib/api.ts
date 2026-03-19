@@ -1,14 +1,16 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3004";
+// Backend URL — only used server-side (in API proxy route)
+// Socket.io still needs the public URL for direct WebSocket connection
+export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3004";
 
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  // Strip /api prefix: "/api/orders" -> "/orders"
-  const cleanPath = path.startsWith("/api") ? path.slice(4) : path;
+  // Ensure path starts with /api for the Next.js proxy
+  const apiPath = path.startsWith("/api") ? path : `/api${path}`;
 
   const headers = new Headers(init?.headers);
 
   // Inject auth token from localStorage
   if (!headers.has("Authorization") && typeof window !== "undefined") {
-    const isStaffRoute = cleanPath.startsWith("/staff/");
+    const isStaffRoute = apiPath.includes("/staff/");
     if (isStaffRoute) {
       const staffData = localStorage.getItem("staff");
       if (staffData) {
@@ -28,10 +30,10 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
     headers.set("Content-Type", "application/json");
   }
 
-  const res = await fetch(`${API_URL}${cleanPath}`, {
+  // Call same-origin Next.js proxy — backend URL is hidden
+  const res = await fetch(apiPath, {
     ...init,
     headers,
-    // credentials: "include", // disabled temporarily for open CORS
   });
 
   // Redirect to login on 401
@@ -51,13 +53,16 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
 }
 
 export async function publicFetch(path: string, init?: RequestInit): Promise<Response> {
+  // /public/menu/123 -> /api/public/menu/123 (goes through Next.js proxy)
+  const apiPath = `/api${path}`;
+
   const headers = new Headers(init?.headers);
 
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(`${API_URL}${path}`, {
+  return fetch(apiPath, {
     ...init,
     headers,
   });

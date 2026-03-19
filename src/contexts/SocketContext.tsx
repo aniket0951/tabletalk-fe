@@ -22,8 +22,14 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const s = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3004", {
+    // Send auth token in handshake if available (owner or staff)
+    const token = typeof window !== "undefined"
+      ? localStorage.getItem("token") || (() => { try { return JSON.parse(localStorage.getItem("staff") || "{}").token; } catch { return undefined; } })()
+      : undefined;
+
+    const s = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3004", {
       transports: ["websocket", "polling"],
+      auth: token ? { token } : {},
     });
 
     s.on("connect", () => setIsConnected(true));
