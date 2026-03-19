@@ -20,6 +20,7 @@ const activeFilterTabs: { label: string; value: string }[] = [
   { label: "Cooking", value: "COOKING" },
   { label: "Ready", value: "READY" },
   { label: "Billed", value: "BILLED" },
+  { label: "Settled", value: "SETTLED" },
 ];
 
 const historyFilterTabs: { label: string; value: string }[] = [
@@ -180,9 +181,8 @@ export default function StaffOrdersPage() {
     setUpdatingId(null);
   }
 
-  // Active tab: exclude SETTLED, apply activeFilter
-  const activeOrders = orders.filter((o) => o.status !== "SETTLED");
-  const activeFiltered = activeOrders.filter((o) => {
+  // Active tab: apply activeFilter
+  const activeFiltered = orders.filter((o) => {
     if (activeFilter !== "ALL" && o.status !== activeFilter) return false;
     return true;
   });
@@ -194,7 +194,7 @@ export default function StaffOrdersPage() {
   });
 
   // Stats source
-  const sourceOrders = activeTab === "active" ? activeOrders : historyOrders;
+  const sourceOrders = activeTab === "active" ? orders : historyOrders;
   const currentLoading = activeTab === "active" ? loading : historyLoading;
   const currentFiltered = activeTab === "active" ? activeFiltered : historyFiltered;
   const currentFilterTabs = activeTab === "active" ? activeFilterTabs : historyFilterTabs;
@@ -220,7 +220,7 @@ export default function StaffOrdersPage() {
     <div className="p-4 animate-fadeIn">
       <div className="mb-4">
         <div className="text-sm font-semibold">My Orders</div>
-        <div className="mt-0.5 text-xs text-text3">{activeOrders.length} active orders</div>
+        <div className="mt-0.5 text-xs text-text3">{orders.length} active orders</div>
       </div>
 
       {/* Tab pills */}
