@@ -22,7 +22,6 @@ export default function DashboardOverview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [drawerLoading, setDrawerLoading] = useState(false);
   const router = useRouter();
   const toggleSidebar = useSidebarToggle();
 
@@ -48,13 +47,15 @@ export default function DashboardOverview() {
       });
   }, []);
 
+  const [loadingOrderId, setLoadingOrderId] = useState<string | null>(null);
+
   async function openOrderDetail(orderId: string) {
-    setDrawerLoading(true);
+    setLoadingOrderId(orderId);
     try {
       const res = await apiFetch(`/api/orders/${orderId}`);
       if (res.ok) setSelectedOrder(await res.json());
     } catch {}
-    setDrawerLoading(false);
+    setLoadingOrderId(null);
   }
 
   const [now, setNow] = useState(Date.now());
@@ -75,7 +76,7 @@ export default function DashboardOverview() {
 
   return (
     <>
-      <Topbar title="Dashboard" onMenuToggle={toggleSidebar} loading={drawerLoading} />
+      <Topbar title="Dashboard" onMenuToggle={toggleSidebar} loading={!!loadingOrderId} />
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
         {/* Stats */}
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -135,7 +136,7 @@ export default function DashboardOverview() {
                   <div
                     key={order.id}
                     onClick={() => openOrderDetail(order.id)}
-                    className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background"
+                    className={`flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 ${loadingOrderId === order.id ? "bg-accent-bg" : "hover:bg-background"}`}
                   >
                     <div
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] border font-mono text-[11px] font-bold ${isNew ? "border-accent-border bg-new-bg text-accent" : "border-border bg-surface2 text-text2"}`}
@@ -144,7 +145,7 @@ export default function DashboardOverview() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs font-medium">
-                        {order.orderCode} · {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
+                        {loadingOrderId === order.id ? "Loading..." : `${order.orderCode} · ${order._count?.items || 0} item${(order._count?.items || 0) !== 1 ? "s" : ""}`}
                       </div>
                       <div className="mt-[1px] font-mono text-[11px] text-text3">
                         {order.table?.label || "—"} · {timeAgo(order.placedAt)}

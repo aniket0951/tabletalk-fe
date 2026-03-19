@@ -28,7 +28,6 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
-  const [drawerLoading, setDrawerLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [staffList, setStaffList] = useState<ApiStaff[]>([]);
   const [staffFilter, setStaffFilter] = useState("");
@@ -73,13 +72,15 @@ export default function OrdersPage() {
     });
   }
 
+  const [loadingOrderId, setLoadingOrderId] = useState<string | null>(null);
+
   async function openOrderDetail(orderId: string) {
-    setDrawerLoading(true);
+    setLoadingOrderId(orderId);
     try {
       const res = await apiFetch(`/api/orders/${orderId}`);
       if (res.ok) setSelectedOrder(await res.json());
     } catch {}
-    setDrawerLoading(false);
+    setLoadingOrderId(null);
   }
 
   function handleFilterChange(value: string) {
@@ -119,7 +120,7 @@ export default function OrdersPage() {
 
   return (
     <>
-      <Topbar title="Order History" onMenuToggle={toggleSidebar} loading={drawerLoading} />
+      <Topbar title="Order History" onMenuToggle={toggleSidebar} loading={!!loadingOrderId} />
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
         <div className="mb-[14px] flex flex-wrap items-center gap-[7px]">
           {filterTabs.map((tab) => (
@@ -178,7 +179,7 @@ export default function OrdersPage() {
                 {orders.map((order) => {
                   const st = statusMap[order.status];
                   return (
-                    <tr key={order.id} onClick={() => openOrderDetail(order.id)} className="cursor-pointer hover:bg-background">
+                    <tr key={order.id} onClick={() => openOrderDetail(order.id)} className={`cursor-pointer transition-colors ${loadingOrderId === order.id ? "bg-accent-bg" : "hover:bg-background"}`}>
                       <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs">{order.orderCode}</td>
                       <td className="border-b border-border px-[14px] py-[11px] text-[13px] font-bold">{order.table?.label || "—"}</td>
                       <td className="border-b border-border px-[14px] py-[11px] text-[13px] text-text2">
@@ -198,9 +199,10 @@ export default function OrdersPage() {
                       <td className="border-b border-border px-[14px] py-[11px]">
                         <button
                           onClick={(e) => { e.stopPropagation(); openOrderDetail(order.id); }}
-                          className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
+                          disabled={loadingOrderId === order.id}
+                          className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2 disabled:opacity-50"
                         >
-                          View →
+                          {loadingOrderId === order.id ? "Loading..." : "View →"}
                         </button>
                       </td>
                     </tr>
