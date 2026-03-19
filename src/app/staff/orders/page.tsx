@@ -64,19 +64,39 @@ export default function StaffOrdersPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const handleOrderUpdate = useCallback((updated: ApiOrder) => {
-    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+  const getMyStaffId = useCallback(() => {
+    try {
+      const staffData = localStorage.getItem("staff");
+      if (staffData) return JSON.parse(staffData).staffId;
+    } catch {}
+    return null;
   }, []);
 
-  const handleOrderCreate = useCallback((created: ApiOrder) => {
-    const staffData = localStorage.getItem("staff");
-    if (staffData) {
-      const { staffId } = JSON.parse(staffData);
-      if (created.staffId === staffId) {
-        setOrders((prev) => [created, ...prev]);
+  const handleOrderUpdate = useCallback((updated: ApiOrder) => {
+    const myId = getMyStaffId();
+    if (!myId) return;
+
+    setOrders((prev) => {
+      const exists = prev.some((o) => o.id === updated.id);
+
+      if (updated.staffId === myId) {
+        // Assigned to me — add if not in list, update if already there
+        if (exists) return prev.map((o) => (o.id === updated.id ? updated : o));
+        return [updated, ...prev];
+      } else {
+        // Not assigned to me — remove if was in my list, otherwise ignore
+        if (exists) return prev.filter((o) => o.id !== updated.id);
+        return prev;
       }
+    });
+  }, [getMyStaffId]);
+
+  const handleOrderCreate = useCallback((created: ApiOrder) => {
+    const myId = getMyStaffId();
+    if (myId && created.staffId === myId) {
+      setOrders((prev) => [created, ...prev]);
     }
-  }, []);
+  }, [getMyStaffId]);
 
   useSocketEvent("order:updated", handleOrderUpdate);
   useSocketEvent("order:created", handleOrderCreate);
