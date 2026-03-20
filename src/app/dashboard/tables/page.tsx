@@ -68,8 +68,8 @@ export default function TablesPage() {
     setTables((prev) => [...prev, t]);
   }, []);
 
-  const handleTableUpdated = useCallback((t: ApiDiningTable) => {
-    setTables((prev) => prev.map((x) => (x.id === t.id ? t : x)));
+  const handleTableUpdated = useCallback((t: Partial<ApiDiningTable> & { id: string }) => {
+    setTables((prev) => prev.map((x) => (x.id === t.id ? { ...x, ...t } : x)));
   }, []);
 
   const handleTableDeleted = useCallback((data: { id: string }) => {
