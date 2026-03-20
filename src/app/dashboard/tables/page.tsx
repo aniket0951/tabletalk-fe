@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import QRCode from "qrcode";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle, useRestaurant } from "../layout";
@@ -10,35 +11,6 @@ import { apiFetch } from "@/lib/api";
 import type { ApiDiningTable } from "@/types";
 
 const capacityOptions = [2, 4, 6, 8, 10, 12];
-
-function generateQRSVG(tableNumber: number) {
-  const seed = tableNumber * 137 + 42;
-  const size = 21;
-  const cell = Math.floor(160 / size);
-  const fixedDark = new Set<number>();
-  for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) {
-    if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) fixedDark.add(r * size + c);
-  }
-  for (let r = 0; r < 7; r++) for (let c = size - 7; c < size; c++) {
-    const cc = c - (size - 7);
-    if (r === 0 || r === 6 || cc === 0 || cc === 6 || (r >= 2 && r <= 4 && cc >= 2 && cc <= 4)) fixedDark.add(r * size + c);
-  }
-  for (let r = size - 7; r < size; r++) for (let c = 0; c < 7; c++) {
-    const rr = r - (size - 7);
-    if (rr === 0 || rr === 6 || c === 0 || c === 6 || (rr >= 2 && rr <= 4 && c >= 2 && c <= 4)) fixedDark.add(r * size + c);
-  }
-  for (let i = 8; i < size - 8; i++) {
-    if (i % 2 === 0) { fixedDark.add(6 * size + i); fixedDark.add(i * size + 6); }
-  }
-  let cells = "";
-  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
-    const key = r * size + c;
-    const dark = fixedDark.has(key) || ((seed * (r + 1) * 31 + (c + 1) * 17 + r * c) % 7) < 3;
-    if (dark) cells += `<rect x="${c * cell}" y="${r * cell}" width="${cell - 1}" height="${cell - 1}" fill="#1c1917"/>`;
-  }
-  const cx = Math.floor(size / 2) * cell, cy = Math.floor(size / 2) * cell;
-  return `<svg viewBox="0 0 ${size * cell} ${size * cell}" xmlns="http://www.w3.org/2000/svg"><rect width="${size * cell}" height="${size * cell}" fill="white"/>${cells}<rect x="${cx - 8}" y="${cy - 8}" width="24" height="24" rx="4" fill="white"/><rect x="${cx - 6}" y="${cy - 6}" width="20" height="20" rx="3" fill="#d4522a"/><text x="${cx + 4}" y="${cy + 8}" font-size="12" fill="white" text-anchor="middle">🍽</text></svg>`;
-}
 
 export default function TablesPage() {
   const toggleSidebar = useSidebarToggle();
@@ -79,6 +51,17 @@ export default function TablesPage() {
   useSocketEvent("table:created", handleTableCreated);
   useSocketEvent("table:updated", handleTableUpdated);
   useSocketEvent("table:deleted", handleTableDeleted);
+
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  // Generate real QR code when modal opens
+  useEffect(() => {
+    if (!qrTable) { setQrDataUrl(null); return; }
+    const url = typeof window !== "undefined" ? `${window.location.origin}/order/${qrTable.id}` : `/order/${qrTable.id}`;
+    QRCode.toDataURL(url, { width: 320, margin: 2, color: { dark: "#1c1917", light: "#ffffff" } })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [qrTable]);
 
   const occupied = tables.filter((t) => t.active && t.status === "OCCUPIED").length;
   const free = tables.filter((t) => t.active && t.status === "FREE").length;
@@ -203,8 +186,12 @@ export default function TablesPage() {
               <button onClick={() => setQrTable(null)} className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 hover:bg-red-bg hover:text-red">✕</button>
             </div>
             <div className="p-6 text-center">
-              <div className="mx-auto mb-[14px] flex h-[180px] w-[180px] items-center justify-center rounded-[10px] border border-border bg-surface">
-                <div dangerouslySetInnerHTML={{ __html: generateQRSVG(qrTable.tableNumber) }} className="h-[160px] w-[160px]" />
+              <div className="mx-auto mb-[14px] flex h-[180px] w-[180px] items-center justify-center rounded-[10px] border border-border bg-white">
+                {qrDataUrl ? (
+                  <img src={qrDataUrl} alt={`QR code for ${qrTable.label}`} className="h-[160px] w-[160px]" />
+                ) : (
+                  <div className="text-sm text-text3">Generating...</div>
+                )}
               </div>
               <div className="mb-1 font-serif text-xl font-extrabold">{qrTable.label}</div>
               <div className="mb-2 text-xs text-text2">Scan to order online</div>
