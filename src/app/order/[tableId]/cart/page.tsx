@@ -21,6 +21,7 @@ export default function CartPage({
   const [name, setName] = useState("");
   const [specialNote, setSpecialNote] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [orderError, setOrderError] = useState("");
 
   const tax = Math.round(subtotal * 0.05 * 100) / 100;
   const total = Math.round((subtotal + tax) * 100) / 100;
@@ -50,7 +51,11 @@ export default function CartPage({
 
       if (!res.ok) {
         const err = await res.json();
-        showToast(err.error || "Failed to place order");
+        if (err.code === "TABLE_OCCUPIED") {
+          setOrderError("This table is currently occupied. Please wait for the current order to be settled before placing a new one.");
+        } else {
+          showToast(err.error || "Failed to place order");
+        }
         setPlacing(false);
         return;
       }
@@ -81,6 +86,18 @@ export default function CartPage({
 
   return (
     <div className="animate-fadeIn px-4 py-4">
+      {orderError && (
+        <div className="mb-4 rounded-[10px] border border-[#fca5a5] bg-[rgba(239,68,68,.08)] p-4">
+          <div className="mb-1 text-sm font-bold text-[#f87171]">Cannot place order</div>
+          <div className="text-xs text-[#f87171]">{orderError}</div>
+          <Link
+            href={`/order/${tableId}`}
+            className="mt-3 inline-block rounded-lg border border-[#fca5a5] px-4 py-2 text-xs font-semibold text-[#f87171] hover:bg-[rgba(239,68,68,.12)]"
+          >
+            ← Back to Menu
+          </Link>
+        </div>
+      )}
       <div className="mb-3 flex items-center gap-2">
         <Link href={`/order/${tableId}`} className="text-sm text-accent font-semibold">
           ← Menu
