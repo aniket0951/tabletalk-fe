@@ -6,23 +6,44 @@ import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch, publicFetch } from "@/lib/api";
-import type { ApiMenuCategory } from "@/types";
+import type { ApiMenuItem } from "@/types";
+
+interface CategoryTab {
+  id: string;
+  name: string;
+  emoji: string;
+  sortOrder: number;
+  _count: { items: number };
+}
 
 export default function MenuPage() {
   const toggleSidebar = useSidebarToggle();
   const { showToast } = useToast();
   const { gate, checkSubscription } = useSubscriptionGate();
-  const [menu, setMenu] = useState<ApiMenuCategory[]>([]);
+
+  // Categories (tabs)
+  const [categories, setCategories] = useState<CategoryTab[]>([]);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [categoryItems, setCategoryItems] = useState<Record<string, ApiMenuItem[]>>({});
+  const [loadingItems, setLoadingItems] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Item modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [miName, setMiName] = useState("");
+  const [miCat, setMiCat] = useState("");
+  const [miPrice, setMiPrice] = useState("");
+  const [miType, setMiType] = useState<"VEG" | "NON_VEG" | "">("");
+  const [miDesc, setMiDesc] = useState("");
+  const [savingItem, setSavingItem] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Category modal state
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [catName, setCatName] = useState("");
   const [catEmoji, setCatEmoji] = useState("🍽");
   const [catSaving, setCatSaving] = useState(false);
-  const [expandedCat, setExpandedCat] = useState<string | null>(null);
-  const [savingItem, setSavingItem] = useState(false);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Reviews modal state
   type Review = { rating: number; note: string; createdAt: string; customer: { name: string } };
@@ -46,44 +67,62 @@ export default function MenuPage() {
           starFilter: star,
         }));
       }
-    } catch {
-      // silently fail
-    }
+    } catch {}
     setReviewsLoading(false);
   }, []);
 
-  // Modal state
-  const [miName, setMiName] = useState("");
-  const [miCat, setMiCat] = useState("");
-  const [miPrice, setMiPrice] = useState("");
-  const [miType, setMiType] = useState<"VEG" | "NON_VEG" | "">("");
-  const [miDesc, setMiDesc] = useState("");
-
-  const fetchMenu = useCallback(() => {
-    apiFetch("/api/menu/items")
+  // Fetch categories (tabs only)
+  const fetchCategories = useCallback(() => {
+    apiFetch("/api/menu/categories")
       .then((r) => r.json())
       .then((data) => {
         const cats = Array.isArray(data) ? data : [];
-        setMenu(cats);
-        if (cats.length > 0 && !expandedCat) setExpandedCat(cats[0].id);
+        setCategories(cats);
+        if (cats.length > 0 && !activeTab) {
+          const firstId = cats[0].id;
+          setActiveTab(firstId);
+          fetchCategoryItems(firstId);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchMenu(); }, [fetchMenu]);
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
+  // Fetch items for a single category
+  function fetchCategoryItems(catId: string, force = false) {
+    if (!force && categoryItems[catId]) return;
+    setLoadingItems(catId);
+    apiFetch(`/api/menu/categories/${catId}/items`)
+      .then((r) => r.json())
+      .then((items: ApiMenuItem[]) => {
+        setCategoryItems((prev) => ({ ...prev, [catId]: items }));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingItems(null));
+  }
 
+  function handleTabChange(catId: string) {
+    setActiveTab(catId);
+    fetchCategoryItems(catId);
+  }
+
+  // Current tab items
+  const currentItems = activeTab ? categoryItems[activeTab] || [] : [];
+  const totalItems = categories.reduce((s, c) => s + c._count.items, 0);
+
+  // Item CRUD
   function openAddModal() {
     setEditItemId(null);
-    setMiName(""); setMiCat(""); setMiPrice(""); setMiType(""); setMiDesc("");
+    setMiName(""); setMiCat(activeTab || ""); setMiPrice(""); setMiType(""); setMiDesc("");
     setModalOpen(true);
   }
 
-  function openEditModal(categoryId: string, item: ApiMenuCategory["items"][0]) {
+  function openEditModal(item: ApiMenuItem) {
     setEditItemId(item.id);
     setMiName(item.name);
-    setMiCat(categoryId);
+    setMiCat(item.categoryId);
     setMiPrice(String(item.price));
     setMiType(item.type as "VEG" | "NON_VEG");
     setMiDesc(item.description);
@@ -112,7 +151,9 @@ export default function MenuPage() {
         if (!res.ok) { showToast("Failed to add item"); setSavingItem(false); return; }
         showToast(`${miName} added!`);
       }
-      fetchMenu();
+      // Refetch the affected category's items + update category counts
+      fetchCategoryItems(miCat, true);
+      fetchCategories();
     } catch {
       showToast("Failed to save item");
     }
@@ -127,12 +168,22 @@ export default function MenuPage() {
         method: "PATCH",
         body: JSON.stringify({ available: !currentAvailable }),
       });
+      // Update locally
+      if (activeTab) {
+        setCategoryItems((prev) => ({
+          ...prev,
+          [activeTab]: (prev[activeTab] || []).map((i) =>
+            i.id === itemId ? { ...i, available: !currentAvailable } : i
+          ),
+        }));
+      }
     } catch {
       showToast("Failed to toggle item");
     }
     setTogglingId(null);
   }
 
+  // Category CRUD
   function openAddCategory() {
     setCatName("");
     setCatEmoji("🍽");
@@ -152,7 +203,7 @@ export default function MenuPage() {
       });
       if (res.ok) {
         showToast(`${catEmoji} ${catName} category added!`);
-        fetchMenu();
+        fetchCategories();
       } else {
         showToast("Failed to add category");
       }
@@ -173,7 +224,7 @@ export default function MenuPage() {
           <div>
             <div className="text-sm font-semibold">Menu Editor</div>
             <div className="mt-0.5 text-xs text-text3">
-              {menu.reduce((s, c) => s + c.items.length, 0)} items · {menu.length} categories
+              {totalItems} items · {categories.length} categories
             </div>
           </div>
           <div className="flex gap-2">
@@ -194,18 +245,49 @@ export default function MenuPage() {
 
         {loading ? (
           <div className="py-6 text-center text-sm text-text3">Loading menu...</div>
+        ) : categories.length === 0 ? (
+          <div className="py-10 text-center">
+            <div className="mb-2 text-2xl">📋</div>
+            <div className="text-sm text-text3">No categories yet. Add one to get started.</div>
+          </div>
         ) : (
-          <div className="overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
-            {menu.map((cat) => (
-              <div key={cat.id}>
-                <div
-                  onClick={() => setExpandedCat(expandedCat === cat.id ? null : cat.id)}
-                  className={`flex cursor-pointer items-center justify-between border-b border-border px-[18px] py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.10em] transition-colors ${expandedCat === cat.id ? "bg-accent/[0.07] text-accent" : "bg-background text-text3 hover:bg-accent/[0.04] hover:text-accent/70"}`}
+          <>
+            {/* Category tabs */}
+            <div className="mb-4 flex gap-2 overflow-x-auto scrollbar-none">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleTabChange(cat.id)}
+                  className={`shrink-0 rounded-2xl border px-3 py-1.5 text-xs font-semibold transition-all ${
+                    activeTab === cat.id
+                      ? "border-accent bg-accent-bg text-accent"
+                      : "border-border bg-surface text-text2 hover:bg-surface2"
+                  }`}
                 >
-                  <span>{cat.emoji} {cat.name} <span className="ml-1 text-[9px] font-semibold normal-case tracking-normal opacity-60">({cat.items.length})</span></span>
-                  <span className={`text-[10px] transition-transform ${expandedCat === cat.id ? "rotate-180" : ""}`}>▼</span>
+                  {cat.emoji} {cat.name} ({cat._count.items})
+                </button>
+              ))}
+            </div>
+
+            {/* Items for active tab */}
+            <div className="overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+              {loadingItems === activeTab ? (
+                <div className="space-y-0">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-[11px] border-b border-border px-[18px] py-[10px] last:border-b-0">
+                      <div className="h-[10px] w-[10px] rounded-[2px] bg-border animate-pulse" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-3 w-32 rounded bg-border animate-pulse" />
+                        <div className="h-2 w-48 rounded bg-border animate-pulse" />
+                      </div>
+                      <div className="h-3 w-12 rounded bg-border animate-pulse" />
+                    </div>
+                  ))}
                 </div>
-                {expandedCat === cat.id && cat.items.map((item) => (
+              ) : currentItems.length === 0 ? (
+                <div className="px-[18px] py-8 text-center text-sm text-text3">No items in this category</div>
+              ) : (
+                currentItems.map((item) => (
                   <div key={item.id} className="flex items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background">
                     <div className={`h-[10px] w-[10px] shrink-0 rounded-[2px] ${item.type === "VEG" ? "bg-green-mid" : "bg-red"}`} />
                     <div className="flex-1">
@@ -229,7 +311,7 @@ export default function MenuPage() {
                       )}
                     </div>
                     <button
-                      onClick={() => checkSubscription("Edit Item", () => openEditModal(cat.id, item))}
+                      onClick={() => checkSubscription("Edit Item", () => openEditModal(item))}
                       className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
                     >
                       Edit
@@ -239,15 +321,13 @@ export default function MenuPage() {
                       disabled={togglingId === item.id}
                       className={`relative h-[18px] w-8 shrink-0 cursor-pointer rounded-[9px] border-none transition-colors ${togglingId === item.id ? "opacity-50" : ""} ${item.available ? "bg-green-mid" : "bg-border2"}`}
                     >
-                      <div
-                        className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,.2)] transition-[left] ${item.available ? "left-[17px]" : "left-[3px]"}`}
-                      />
+                      <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,.2)] transition-[left] ${item.available ? "left-[17px]" : "left-[3px]"}`} />
                     </button>
                   </div>
-                ))}
-              </div>
-            ))}
-          </div>
+                ))
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -269,11 +349,7 @@ export default function MenuPage() {
                 <label className="mb-[5px] block text-xs font-semibold text-text2">Emoji</label>
                 <div className="flex flex-wrap gap-2">
                   {["🍽", "🥗", "🍛", "🍜", "🥘", "🍰", "☕", "🥤", "🍺", "🧁"].map((e) => (
-                    <div
-                      key={e}
-                      onClick={() => setCatEmoji(e)}
-                      className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-[1.5px] text-lg transition-all ${catEmoji === e ? "border-accent bg-accent-bg" : "border-border hover:bg-surface2"}`}
-                    >
+                    <div key={e} onClick={() => setCatEmoji(e)} className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-[1.5px] text-lg transition-all ${catEmoji === e ? "border-accent bg-accent-bg" : "border-border hover:bg-surface2"}`}>
                       {e}
                     </div>
                   ))}
@@ -290,10 +366,7 @@ export default function MenuPage() {
 
       {/* Reviews Modal */}
       {reviewsModal && (
-        <div
-          className="fixed inset-0 z-[500] flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO"
-          onClick={(e) => e.target === e.currentTarget && setReviewsModal(null)}
-        >
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO" onClick={(e) => e.target === e.currentTarget && setReviewsModal(null)}>
           <div className="mx-4 w-full max-w-[460px] overflow-hidden rounded-[14px] bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] animate-slideUp sm:mx-0">
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
@@ -302,34 +375,12 @@ export default function MenuPage() {
               </div>
               <button onClick={() => setReviewsModal(null)} className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 transition-all hover:bg-red-bg hover:text-red">✕</button>
             </div>
-
-            {/* Star filter pills */}
             <div className="flex gap-1.5 overflow-x-auto border-b border-border px-5 py-2 scrollbar-none">
-              <button
-                onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, null)}
-                className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${
-                  reviewsModal.starFilter === null
-                    ? "border-accent bg-accent-bg text-accent"
-                    : "border-border bg-surface text-text2"
-                }`}
-              >
-                All
-              </button>
+              <button onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, null)} className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${reviewsModal.starFilter === null ? "border-accent bg-accent-bg text-accent" : "border-border bg-surface text-text2"}`}>All</button>
               {[5, 4, 3, 2, 1].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, star)}
-                  className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${
-                    reviewsModal.starFilter === star
-                      ? "border-accent bg-accent-bg text-accent"
-                      : "border-border bg-surface text-text2"
-                  }`}
-                >
-                  {star} ★
-                </button>
+                <button key={star} onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, 1, star)} className={`shrink-0 rounded-2xl border px-3 py-1 text-[11px] font-semibold transition-all ${reviewsModal.starFilter === star ? "border-accent bg-accent-bg text-accent" : "border-border bg-surface text-text2"}`}>{star} ★</button>
               ))}
             </div>
-
             <div className="max-h-[55vh] overflow-y-auto px-5 py-3">
               {reviewsLoading && reviewsModal.reviews.length === 0 ? (
                 <div className="py-6 text-center text-xs text-text3">Loading reviews...</div>
@@ -345,22 +396,14 @@ export default function MenuPage() {
                             <span key={s} className={`text-sm ${s <= review.rating ? "text-amber-400" : "text-text3"}`}>★</span>
                           ))}
                         </div>
-                        <span className="text-[10px] text-text3">
-                          {new Date(review.createdAt).toLocaleDateString([], { day: "2-digit", month: "short" })}
-                        </span>
+                        <span className="text-[10px] text-text3">{new Date(review.createdAt).toLocaleDateString([], { day: "2-digit", month: "short" })}</span>
                       </div>
                       {review.note && <div className="mt-1.5 text-xs text-text2">{review.note}</div>}
                       <div className="mt-1 text-[10px] text-text3">{review.customer.name || "Customer"}</div>
                     </div>
                   ))}
-
-                  {/* Load more */}
                   {reviewsModal.page < reviewsModal.totalPages && (
-                    <button
-                      onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, reviewsModal.page + 1, reviewsModal.starFilter)}
-                      disabled={reviewsLoading}
-                      className="w-full rounded-lg border border-border py-2 text-xs font-semibold text-text2 transition-all hover:bg-surface2 disabled:opacity-50"
-                    >
+                    <button onClick={() => fetchReviews(reviewsModal.itemId, reviewsModal.itemName, reviewsModal.page + 1, reviewsModal.starFilter)} disabled={reviewsLoading} className="w-full rounded-lg border border-border py-2 text-xs font-semibold text-text2 transition-all hover:bg-surface2 disabled:opacity-50">
                       {reviewsLoading ? "Loading..." : "Load more"}
                     </button>
                   )}
@@ -389,7 +432,7 @@ export default function MenuPage() {
                 <label className="mb-[5px] block text-xs font-semibold text-text2">Category *</label>
                 <select className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none focus:border-accent" value={miCat} onChange={(e) => setMiCat(e.target.value)}>
                   <option value="">— Select —</option>
-                  {menu.map((cat) => (
+                  {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
@@ -401,16 +444,10 @@ export default function MenuPage() {
               <div className="mb-4">
                 <label className="mb-[5px] block text-xs font-semibold text-text2">Type *</label>
                 <div className="flex gap-[9px]">
-                  <div
-                    onClick={() => setMiType("VEG")}
-                    className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-[1.5px] px-[9px] py-[9px] text-xs font-semibold transition-all ${miType === "VEG" ? "border-green-mid bg-green-bg text-green-mid" : "border-border"}`}
-                  >
+                  <div onClick={() => setMiType("VEG")} className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-[1.5px] px-[9px] py-[9px] text-xs font-semibold transition-all ${miType === "VEG" ? "border-green-mid bg-green-bg text-green-mid" : "border-border"}`}>
                     <div className="h-[10px] w-[10px] rounded-[2px] bg-green-mid" /> Vegetarian
                   </div>
-                  <div
-                    onClick={() => setMiType("NON_VEG")}
-                    className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-[1.5px] px-[9px] py-[9px] text-xs font-semibold transition-all ${miType === "NON_VEG" ? "border-red bg-red-bg text-red" : "border-border"}`}
-                  >
+                  <div onClick={() => setMiType("NON_VEG")} className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-[1.5px] px-[9px] py-[9px] text-xs font-semibold transition-all ${miType === "NON_VEG" ? "border-red bg-red-bg text-red" : "border-border"}`}>
                     <div className="h-[10px] w-[10px] rounded-[2px] bg-red" /> Non-Veg
                   </div>
                 </div>
