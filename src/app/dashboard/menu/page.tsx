@@ -157,9 +157,14 @@ export default function MenuPage() {
         if (!res.ok) { showToast("Failed to add item"); setSavingItem(false); return; }
         showToast(`${miName} added!`);
       }
-      // Refetch the affected category's items + update category counts
+      // Refetch only the affected category's items
       fetchCategoryItems(miCat, true);
-      fetchCategories();
+      // Update item count locally — no need to refetch all categories
+      if (!editItemId) {
+        setCategories((prev) => prev.map((c) =>
+          c.id === miCat ? { ...c, _count: { items: c._count.items + 1 } } : c
+        ));
+      }
     } catch {
       showToast("Failed to save item");
     }
@@ -208,8 +213,16 @@ export default function MenuPage() {
         body: JSON.stringify({ name: catName.trim(), emoji: catEmoji }),
       });
       if (res.ok) {
+        const newCat = await res.json();
         showToast(`${catEmoji} ${catName} category added!`);
-        fetchCategories();
+        // Add locally — no full refetch, stays on current tab
+        setCategories((prev) => [...prev, {
+          id: newCat.id,
+          name: catName.trim(),
+          emoji: catEmoji,
+          sortOrder: prev.length,
+          _count: { items: 0 },
+        }]);
       } else {
         showToast("Failed to add category");
       }
