@@ -166,6 +166,7 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
           <div className="border-b border-border px-5 py-[14px]">
             <div className="mb-[10px] font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text3">Customer</div>
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Table</span><span className="text-xs font-semibold">{input.table?.label || "—"}</span></div>
+            <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Name</span><span className="text-xs font-semibold">{order?.customerName || ("customerName" in input ? input.customerName : "—") || "—"}</span></div>
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Phone</span><span className="font-mono text-xs font-semibold">{order?.customerPhone || ("customerPhone" in input ? input.customerPhone : "—")}</span></div>
             <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Placed at</span><span className="font-mono text-xs font-semibold">{formatTime(input.placedAt)}</span></div>
             <div className="mb-1.5 flex items-center justify-between">
