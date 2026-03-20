@@ -25,7 +25,10 @@ export default function MenuPage() {
   const [categories, setCategories] = useState<CategoryTab[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [categoryItems, setCategoryItems] = useState<Record<string, ApiMenuItem[]>>({});
+  const [categoryHasMore, setCategoryHasMore] = useState<Record<string, boolean>>({});
+  const [categoryPage, setCategoryPage] = useState<Record<string, number>>({});
   const [loadingItems, setLoadingItems] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Item modal state
@@ -90,23 +93,43 @@ export default function MenuPage() {
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
-  // Fetch items for a single category
+  // Fetch items for a single category (page 1)
   function fetchCategoryItems(catId: string, force = false) {
     if (!force && categoryItems[catId]) return;
-    // Skip API call if category has 0 items
     const cat = categories.find((c) => c.id === catId);
     if (!force && cat && cat._count.items === 0) {
       setCategoryItems((prev) => ({ ...prev, [catId]: [] }));
+      setCategoryHasMore((prev) => ({ ...prev, [catId]: false }));
       return;
     }
     setLoadingItems(catId);
-    apiFetch(`/api/menu/categories/${catId}/items`)
+    apiFetch(`/api/menu/categories/${catId}/items?page=1&limit=20`)
       .then((r) => r.json())
-      .then((items: ApiMenuItem[]) => {
-        setCategoryItems((prev) => ({ ...prev, [catId]: items }));
+      .then((data) => {
+        setCategoryItems((prev) => ({ ...prev, [catId]: data.items || [] }));
+        setCategoryHasMore((prev) => ({ ...prev, [catId]: data.pagination?.hasMore || false }));
+        setCategoryPage((prev) => ({ ...prev, [catId]: 1 }));
       })
       .catch(() => {})
       .finally(() => setLoadingItems(null));
+  }
+
+  // Load more items for active category
+  async function loadMoreItems() {
+    if (!activeTab || !categoryHasMore[activeTab]) return;
+    const nextPage = (categoryPage[activeTab] || 1) + 1;
+    setLoadingMore(true);
+    try {
+      const res = await apiFetch(`/api/menu/categories/${activeTab}/items?page=${nextPage}&limit=20`);
+      const data = await res.json();
+      setCategoryItems((prev) => ({
+        ...prev,
+        [activeTab]: [...(prev[activeTab] || []), ...(data.items || [])],
+      }));
+      setCategoryHasMore((prev) => ({ ...prev, [activeTab]: data.pagination?.hasMore || false }));
+      setCategoryPage((prev) => ({ ...prev, [activeTab]: nextPage }));
+    } catch {}
+    setLoadingMore(false);
   }
 
   function handleTabChange(catId: string) {
@@ -344,6 +367,19 @@ export default function MenuPage() {
                     </button>
                   </div>
                 ))
+              )}
+
+              {/* Load more */}
+              {activeTab && categoryHasMore[activeTab] && (
+                <div className="border-t border-border px-[18px] py-3">
+                  <button
+                    onClick={loadMoreItems}
+                    disabled={loadingMore}
+                    className="w-full rounded-lg border border-border py-2 text-xs font-semibold text-text2 transition-all hover:bg-surface2 disabled:opacity-50"
+                  >
+                    {loadingMore ? "Loading..." : "Load more items"}
+                  </button>
+                </div>
               )}
             </div>
           </>
