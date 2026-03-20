@@ -45,6 +45,10 @@ export default function OnboardingStep1() {
         return;
       }
 
+      const data = await res.json();
+      // Save new token with restaurantId
+      if (data.token) localStorage.setItem("token", data.token);
+
       router.push("/onboarding/step2");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
