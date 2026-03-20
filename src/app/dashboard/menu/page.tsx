@@ -93,6 +93,12 @@ export default function MenuPage() {
   // Fetch items for a single category
   function fetchCategoryItems(catId: string, force = false) {
     if (!force && categoryItems[catId]) return;
+    // Skip API call if category has 0 items
+    const cat = categories.find((c) => c.id === catId);
+    if (!force && cat && cat._count.items === 0) {
+      setCategoryItems((prev) => ({ ...prev, [catId]: [] }));
+      return;
+    }
     setLoadingItems(catId);
     apiFetch(`/api/menu/categories/${catId}/items`)
       .then((r) => r.json())
