@@ -86,7 +86,7 @@ export default function CustomersPage() {
     apiFetch(`/api/orders?customerPhone=${encodeURIComponent(c.phone)}`)
       .then((r) => r.json())
       .then((data) => {
-        const orders = Array.isArray(data) ? data : [];
+        const orders = Array.isArray(data) ? data : Array.isArray(data?.orders) ? data.orders : [];
         setCustomerOrders(orders);
         const first = statusGroups.find((st) => orders.some((o: ApiOrderSummary) => o.status === st));
         setExpandedStatus(first || null);
