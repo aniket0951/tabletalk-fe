@@ -38,7 +38,8 @@ export default function DashboardOverview() {
           router.push("/onboarding/step1");
           return;
         }
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        const list = Array.isArray(ordersData) ? ordersData : ordersData?.orders ?? [];
+        setOrders(list);
         setStats(statsData);
         setLoading(false);
       })
