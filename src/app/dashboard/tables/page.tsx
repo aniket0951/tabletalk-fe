@@ -10,6 +10,7 @@ import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
 import type { ApiDiningTable } from "@/types";
 
+
 const capacityOptions = [2, 4, 6, 8, 10, 12];
 
 export default function TablesPage() {
@@ -36,21 +37,11 @@ export default function TablesPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const handleTableCreated = useCallback((t: ApiDiningTable) => {
-    setTables((prev) => [...prev, t]);
-  }, []);
-
   const handleTableUpdated = useCallback((t: Partial<ApiDiningTable> & { id: string }) => {
     setTables((prev) => prev.map((x) => (x.id === t.id ? { ...x, ...t } : x)));
   }, []);
 
-  const handleTableDeleted = useCallback((data: { id: string }) => {
-    setTables((prev) => prev.filter((x) => x.id !== data.id));
-  }, []);
-
-  useSocketEvent("table:created", handleTableCreated);
   useSocketEvent("table:updated", handleTableUpdated);
-  useSocketEvent("table:deleted", handleTableDeleted);
 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -94,13 +85,21 @@ export default function TablesPage() {
           method: "PATCH",
           body: JSON.stringify({ label: tblLabel, capacity: tblCap, active: tblActive }),
         });
-        if (res.ok) showToast(`✅ ${tblLabel} updated!`);
+        if (res.ok) {
+          const data = await res.json();
+          setTables((prev) => prev.map((x) => (x.id === editingId ? { ...x, ...data } : x)));
+          showToast(`✅ ${tblLabel} updated!`);
+        }
       } else {
         const res = await apiFetch("/api/tables", {
           method: "POST",
           body: JSON.stringify({ label: tblLabel, capacity: tblCap }),
         });
-        if (res.ok) showToast(`✅ ${tblLabel} added!`);
+        if (res.ok) {
+          const data = await res.json();
+          setTables((prev) => [...prev, data]);
+          showToast(`✅ ${tblLabel} added!`);
+        }
       }
     } catch {
       showToast("Failed to save table");
@@ -117,7 +116,10 @@ export default function TablesPage() {
     setDeletingId(id);
     try {
       const res = await apiFetch(`/api/tables/${id}`, { method: "DELETE" });
-      if (res.ok) showToast(`🗑 ${t.label} removed.`);
+      if (res.ok) {
+        setTables((prev) => prev.filter((x) => x.id !== id));
+        showToast(`🗑 ${t.label} removed.`);
+      }
     } catch {
       showToast("Failed to delete table");
     }
