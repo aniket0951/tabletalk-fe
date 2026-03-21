@@ -8,12 +8,14 @@ import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
+import { useStaffList, invalidateStaffCache } from "@/hooks/useStaffList";
 import type { ApiStaff, ApiOrderSummary, StaffRole } from "@/types";
 
 export default function StaffPage() {
   const toggleSidebar = useSidebarToggle();
   const { showToast } = useToast();
   const { gate, checkSubscription } = useSubscriptionGate();
+  const { staffList: cachedStaff, loading: staffLoading } = useStaffList();
   const [staff, setStaff] = useState<ApiStaff[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState(false);
@@ -36,22 +38,23 @@ export default function StaffPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/staff")
-      .then((r) => r.json())
-      .then((data) => { setStaff(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+    setStaff(cachedStaff);
+    setLoading(staffLoading);
+  }, [cachedStaff, staffLoading]);
 
   const handleStaffCreated = useCallback((s: ApiStaff) => {
     setStaff((prev) => [...prev, s]);
+    invalidateStaffCache();
   }, []);
 
   const handleStaffUpdated = useCallback((s: ApiStaff) => {
     setStaff((prev) => prev.map((x) => (x.id === s.id ? s : x)));
+    invalidateStaffCache();
   }, []);
 
   const handleStaffDeleted = useCallback((data: { id: string }) => {
     setStaff((prev) => prev.filter((x) => x.id !== data.id));
+    invalidateStaffCache();
   }, []);
 
   useSocketEvent("staff:created", handleStaffCreated);
@@ -172,7 +175,7 @@ export default function StaffPage() {
     apiFetch(`/api/orders?${params}`)
       .then((r) => r.json())
       .then((data) => {
-        const orders = Array.isArray(data) ? data : [];
+        const orders = Array.isArray(data) ? data : Array.isArray(data?.orders) ? data.orders : [];
         setStaffOrders(orders);
         const first = statusGroups.find((st) => orders.some((o: ApiOrderSummary) => o.status === st));
         setExpandedStatus(first || null);

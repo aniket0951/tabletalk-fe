@@ -6,7 +6,8 @@ import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "../layout";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
-import type { ApiOrder, ApiOrderSummary, ApiStaff } from "@/types";
+import { useStaffList } from "@/hooks/useStaffList";
+import type { ApiOrder, ApiOrderSummary } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
   NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
@@ -30,7 +31,7 @@ export default function OrdersPage() {
   const [activeFilter, setActiveFilter] = useState("NEW");
   const [selectedSummary, setSelectedSummary] = useState<ApiOrderSummary | null>(null);
   const [search, setSearch] = useState("");
-  const [staffList, setStaffList] = useState<ApiStaff[]>([]);
+  const { staffList } = useStaffList();
   const [staffFilter, setStaffFilter] = useState("");
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, totalFiltered: 0, totalPages: 0 });
@@ -58,10 +59,6 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders({ page: 1, status: "NEW" });
-    apiFetch("/api/staff")
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setStaffList(data); })
-      .catch(() => {});
   }, [fetchOrders]);
 
   function refetch(overrides?: { status?: string; staffId?: string; search?: string; page?: number }) {
