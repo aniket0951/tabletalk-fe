@@ -22,6 +22,7 @@ export default function BillingPage() {
   const { showToast } = useToast();
 
   const [invoices, setInvoices] = useState<ApiInvoice[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<ApiInvoice | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
 
@@ -215,7 +216,11 @@ export default function BillingPage() {
             <div className="px-[18px] py-[20px] text-center text-[13px] text-text3">No invoices yet</div>
           ) : (
             invoices.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between border-b border-border px-[18px] py-[11px] last:border-b-0">
+              <div
+                key={inv.id}
+                onClick={() => setSelectedInvoice(inv)}
+                className="flex cursor-pointer items-center justify-between border-b border-border px-[18px] py-[11px] transition-colors last:border-b-0 hover:bg-background"
+              >
                 <div>
                   <div className="text-[13px] font-semibold">{inv.invoiceNumber}</div>
                   <div className="mt-0.5 font-mono text-[11px] text-text3">
@@ -232,12 +237,106 @@ export default function BillingPage() {
                     {inv.status}
                   </span>
                   <span className="font-mono text-[13px] font-bold">₹{inv.amount.toLocaleString("en-IN")}</span>
+                  <span className="text-[11px] text-text3">→</span>
                 </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* Invoice Detail Modal */}
+      {selectedInvoice && (
+        <div
+          className="fixed inset-0 z-500 flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO"
+          onClick={(e) => e.target === e.currentTarget && setSelectedInvoice(null)}
+        >
+          <div className="mx-4 w-full max-w-[420px] overflow-hidden rounded-[14px] bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] animate-slideUp sm:mx-0">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div className="text-sm font-bold">Invoice Details</div>
+              <button
+                onClick={() => setSelectedInvoice(null)}
+                className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 hover:bg-red-bg hover:text-red"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5">
+              {/* Status + Amount */}
+              <div className="mb-5 flex items-center justify-between">
+                <span className={`inline-flex items-center gap-1 rounded-[5px] px-2.5 py-[4px] font-mono text-[11px] font-bold tracking-[0.04em] ${
+                  selectedInvoice.status === "PAID" ? "bg-green-bg text-green-mid"
+                  : selectedInvoice.status === "FAILED" ? "bg-[rgba(239,68,68,.08)] text-[#f87171]"
+                  : "bg-amber-bg text-amber"
+                }`}>
+                  {selectedInvoice.status}
+                </span>
+                <div className="font-serif text-2xl font-bold tracking-[-0.02em]">
+                  ₹{selectedInvoice.amount.toLocaleString("en-IN")}
+                </div>
+              </div>
+
+              {/* Detail rows */}
+              <div className="space-y-[14px]">
+                <DetailRow label="Invoice Number" value={selectedInvoice.invoiceNumber} />
+                <DetailRow label="Currency" value={selectedInvoice.currency} />
+                <DetailRow
+                  label="Invoice Date"
+                  value={new Date(selectedInvoice.date).toLocaleDateString("en-IN", {
+                    day: "numeric", month: "long", year: "numeric",
+                  })}
+                />
+                {selectedInvoice.paidAt && (
+                  <DetailRow
+                    label="Paid At"
+                    value={new Date(selectedInvoice.paidAt).toLocaleString("en-IN", {
+                      day: "numeric", month: "short", year: "numeric",
+                      hour: "numeric", minute: "2-digit", hour12: true,
+                    })}
+                  />
+                )}
+                {selectedInvoice.paymentMethod && (
+                  <DetailRow label="Payment Method" value={selectedInvoice.paymentMethod.toUpperCase()} />
+                )}
+                {selectedInvoice.razorpayPaymentId && (
+                  <DetailRow label="Payment ID" value={selectedInvoice.razorpayPaymentId} copyable />
+                )}
+                {selectedInvoice.razorpayInvoiceId && (
+                  <DetailRow label="Razorpay Invoice ID" value={selectedInvoice.razorpayInvoiceId} copyable />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
+  );
+}
+
+function DetailRow({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-text3">{label}</div>
+      <div className="flex items-center gap-1.5 text-right">
+        <div className="font-mono text-[13px] font-semibold">{value}</div>
+        {copyable && (
+          <button
+            onClick={handleCopy}
+            className="rounded px-1 py-0.5 text-[10px] text-text3 transition-all hover:bg-surface2 hover:text-text"
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
