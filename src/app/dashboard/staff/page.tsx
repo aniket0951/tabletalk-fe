@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
-import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
 import { useStaffList, invalidateStaffCache } from "@/hooks/useStaffList";
 import type { ApiStaff, ApiOrderSummary, StaffRole } from "@/types";
@@ -42,24 +41,6 @@ export default function StaffPage() {
     setLoading(staffLoading);
   }, [cachedStaff, staffLoading]);
 
-  const handleStaffCreated = useCallback((s: ApiStaff) => {
-    setStaff((prev) => [...prev, s]);
-    invalidateStaffCache();
-  }, []);
-
-  const handleStaffUpdated = useCallback((s: ApiStaff) => {
-    setStaff((prev) => prev.map((x) => (x.id === s.id ? s : x)));
-    invalidateStaffCache();
-  }, []);
-
-  const handleStaffDeleted = useCallback((data: { id: string }) => {
-    setStaff((prev) => prev.filter((x) => x.id !== data.id));
-    invalidateStaffCache();
-  }, []);
-
-  useSocketEvent("staff:created", handleStaffCreated);
-  useSocketEvent("staff:updated", handleStaffUpdated);
-  useSocketEvent("staff:deleted", handleStaffDeleted);
 
   function openAdd() {
     setEditingId(null);
@@ -98,6 +79,12 @@ export default function StaffPage() {
       });
       const data = await res.json();
       if (res.ok) {
+        if (editingId) {
+          setStaff((prev) => prev.map((x) => (x.id === editingId ? { ...x, ...data } : x)));
+        } else {
+          setStaff((prev) => [...prev, data]);
+        }
+        invalidateStaffCache();
         showToast(editingId ? `${name} updated!` : `${name} added!`);
         setEditModal(false);
       } else {
@@ -116,7 +103,11 @@ export default function StaffPage() {
     setDeletingId(id);
     try {
       const res = await apiFetch(`/api/staff/${id}`, { method: "DELETE" });
-      if (res.ok) showToast(`${s.name} removed`);
+      if (res.ok) {
+        setStaff((prev) => prev.filter((x) => x.id !== id));
+        invalidateStaffCache();
+        showToast(`${s.name} removed`);
+      }
     } catch {
       showToast("Failed to remove staff");
     }
