@@ -10,7 +10,7 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
 
   // Inject auth token from localStorage
   if (!headers.has("Authorization") && typeof window !== "undefined") {
-    const isStaffRoute = apiPath.includes("/staff/");
+    const isStaffRoute = apiPath.startsWith("/api/staff/auth") || apiPath.startsWith("/api/staff/orders");
     if (isStaffRoute) {
       const staffData = localStorage.getItem("staff");
       if (staffData) {
