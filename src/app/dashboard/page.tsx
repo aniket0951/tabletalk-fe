@@ -6,6 +6,7 @@ import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "./layout";
 import { apiFetch } from "@/lib/api";
+import { DashboardSkeleton } from "@/components/shared/Skeleton";
 import type { ApiOrderSummary, DashboardStats } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
@@ -72,6 +73,9 @@ export default function DashboardOverview() {
     <>
       <Topbar title="Dashboard" onMenuToggle={toggleSidebar} />
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
+        {loading ? (
+          <DashboardSkeleton />
+        ) : (<>
         {/* Stats */}
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
@@ -114,11 +118,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between border-b border-border px-[18px] py-[14px]">
               <div className="text-[13px] font-semibold">Recent Orders</div>
             </div>
-            {loading ? (
-              <div className="px-[18px] py-6 text-center text-sm text-text3">
-                Loading orders...
-              </div>
-            ) : orders.length === 0 ? (
+            {orders.length === 0 ? (
               <div className="px-[18px] py-6 text-center text-sm text-text3">
                 No orders yet
               </div>
@@ -234,6 +234,7 @@ export default function DashboardOverview() {
             </div>
           </div>
         </div>
+        </>)}
       </div>
 
       {selectedSummary && (

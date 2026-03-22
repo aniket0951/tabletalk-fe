@@ -5,6 +5,7 @@ import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "../layout";
 import { apiFetch } from "@/lib/api";
+import { GridSkeleton } from "@/components/shared/Skeleton";
 import type { ApiCustomer, ApiOrderSummary } from "@/types";
 
 interface CustomerStats {
@@ -130,7 +131,7 @@ export default function CustomersPage() {
 
           {/* Customer List */}
           {loading ? (
-            <div className="py-6 text-center text-sm text-text3">Loading customers...</div>
+            <GridSkeleton count={6} />
           ) : customers.length === 0 ? (
             <div className="py-6 text-center text-sm text-text3">
               {search ? "No customers match your search" : "No customers yet"}

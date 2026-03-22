@@ -7,6 +7,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch } from "@/lib/api";
+import { GridSkeleton } from "@/components/shared/Skeleton";
 import { useStaffList, invalidateStaffCache } from "@/hooks/useStaffList";
 import type { ApiStaff, ApiOrderSummary, StaffRole } from "@/types";
 
@@ -219,7 +220,7 @@ export default function StaffPage() {
           </div>
 
           {loading ? (
-            <div className="py-6 text-center text-sm text-text3">Loading staff...</div>
+            <GridSkeleton count={4} />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
               {staff.map((s) => (

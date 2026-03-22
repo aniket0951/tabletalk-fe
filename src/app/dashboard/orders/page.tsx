@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
+import { OrdersTableSkeleton } from "@/components/shared/Skeleton";
 import { useSidebarToggle } from "../layout";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
@@ -178,7 +179,7 @@ export default function OrdersPage() {
 
         <div className="overflow-x-auto overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
           {loading ? (
-            <div className="px-[18px] py-6 text-center text-sm text-text3">Loading orders...</div>
+            <OrdersTableSkeleton />
           ) : orders.length === 0 ? (
             <div className="px-[18px] py-6 text-center text-sm text-text3">
               {search || activeFilter !== "ALL" ? "No orders match your filters" : "No orders yet"}

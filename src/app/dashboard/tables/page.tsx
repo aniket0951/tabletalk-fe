@@ -8,6 +8,7 @@ import { useSidebarToggle, useRestaurant } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
+import { GridSkeleton } from "@/components/shared/Skeleton";
 import type { ApiDiningTable } from "@/types";
 
 
@@ -154,7 +155,7 @@ export default function TablesPage() {
 
         {/* Tables grid */}
         {loading ? (
-          <div className="py-6 text-center text-sm text-text3">Loading tables...</div>
+          <GridSkeleton count={6} />
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(158px,1fr))]">
             {tables.map((t) => (
