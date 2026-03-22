@@ -32,7 +32,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         if (!r.ok) throw new Error("Unauthorized");
         return r.json();
       })
-      .then((data) => { setStaff(data); setChecking(false); })
+      .then((body) => { setStaff(body.data); setChecking(false); })
       .catch(() => { setChecking(false); router.push(ROUTES.STAFF_LOGIN); });
   }, [pathname, router]);
 

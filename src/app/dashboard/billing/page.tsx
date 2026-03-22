@@ -29,7 +29,7 @@ export default function BillingPage() {
   useEffect(() => {
     apiFetch("/api/billing/invoices")
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setInvoices(data); })
+      .then((body) => { if (Array.isArray(body.data)) setInvoices(body.data); })
       .catch(() => {});
   }, []);
 
@@ -44,13 +44,14 @@ export default function BillingPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error || "Checkout failed");
+        const body = await res.json();
+        showToast(body.message || "Checkout failed");
         setCheckoutLoading(null);
         return;
       }
 
-      const checkout: CheckoutResponse = await res.json();
+      const body = await res.json();
+      const checkout: CheckoutResponse = body.data;
 
       openRazorpayCheckout({
         razorpayKeyId: checkout.razorpayKeyId,
@@ -96,8 +97,8 @@ export default function BillingPage() {
         showToast("Subscription cancelled.");
         window.location.reload();
       } else {
-        const data = await res.json();
-        showToast(data.error || "Failed to cancel");
+        const body = await res.json();
+        showToast(body.message || "Failed to cancel");
       }
     } catch {
       showToast("Something went wrong.");

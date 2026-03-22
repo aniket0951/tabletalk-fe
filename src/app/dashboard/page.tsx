@@ -29,18 +29,18 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch("/api/orders").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/orders").then((r) => (r.ok ? r.json().then((body: any) => body.data) : null)),
       apiFetch("/api/dashboard/stats").then((r) => {
-        if (r.status === 404) return { noRestaurant: true };
-        return r.ok ? r.json() : null;
+        if (r.status === 422) return { noRestaurant: true };
+        return r.ok ? r.json().then((body: any) => body.data) : null;
       }),
     ])
-      .then(([ordersData, statsData]) => {
+      .then(([ordersData, statsData]: any[]) => {
         if (statsData?.noRestaurant) {
           router.push(ROUTES.ONBOARDING_STEP1);
           return;
         }
-        const list = Array.isArray(ordersData) ? ordersData : ordersData?.orders ?? [];
+        const list = ordersData?.orders ?? [];
         setOrders(list);
         setStats(statsData);
         setLoading(false);

@@ -78,8 +78,9 @@ export default function StaffPage() {
         method: editingId ? "PATCH" : "POST",
         body: JSON.stringify({ name, phone, pin, role }),
       });
-      const data = await res.json();
+      const body = await res.json();
       if (res.ok) {
+        const data = body.data;
         if (editingId) {
           setStaff((prev) => prev.map((x) => (x.id === editingId ? { ...x, ...data } : x)));
         } else {
@@ -89,7 +90,7 @@ export default function StaffPage() {
         showToast(editingId ? `${name} updated!` : `${name} added!`);
         setEditModal(false);
       } else {
-        setFormError(data.error || "Failed to save staff");
+        setFormError(body.message || "Failed to save staff");
       }
     } catch {
       setFormError("Failed to save staff");
@@ -166,8 +167,9 @@ export default function StaffPage() {
     if (to) params.set("to", to);
     apiFetch(`/api/orders?${params}`)
       .then((r) => r.json())
-      .then((data) => {
-        const orders = Array.isArray(data) ? data : Array.isArray(data?.orders) ? data.orders : [];
+      .then((body) => {
+        const d = body.data;
+        const orders = Array.isArray(d) ? d : Array.isArray(d?.orders) ? d.orders : [];
         setStaffOrders(orders);
         const first = statusGroups.find((st) => orders.some((o: ApiOrderSummary) => o.status === st));
         setExpandedStatus(first || null);

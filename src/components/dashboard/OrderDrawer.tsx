@@ -92,7 +92,8 @@ export default function OrderDrawer({
     let cancelled = false;
     apiFetch(`/api/orders/${inputId}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
+      .then((body) => {
+        const data = body?.data;
         if (!cancelled && data) {
           setFetchedDetail(data);
           setFetchedForId(inputId);
@@ -147,8 +148,8 @@ export default function OrderDrawer({
         body: JSON.stringify({ staffId: staffId || null }),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setDetail(updated);
+        const body = await res.json();
+        setDetail(body.data);
 
         const staffName = staffList.find((s) => s.id === staffId)?.name;
         showToast(staffId ? `Assigned to ${staffName}` : "Staff unassigned");

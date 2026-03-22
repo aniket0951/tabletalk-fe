@@ -35,7 +35,7 @@ export default function TablesPage() {
   useEffect(() => {
     apiFetch("/api/tables")
       .then((r) => r.json())
-      .then((data) => { setTables(Array.isArray(data) ? data : []); setLoading(false); })
+      .then((body) => { setTables(Array.isArray(body.data) ? body.data : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -88,7 +88,8 @@ export default function TablesPage() {
           body: JSON.stringify({ label: tblLabel, capacity: tblCap, active: tblActive }),
         });
         if (res.ok) {
-          const data = await res.json();
+          const body = await res.json();
+          const data = body.data;
           setTables((prev) => prev.map((x) => (x.id === editingId ? { ...x, ...data } : x)));
           showToast(`✅ ${tblLabel} updated!`);
         }
@@ -98,7 +99,8 @@ export default function TablesPage() {
           body: JSON.stringify({ label: tblLabel, capacity: tblCap }),
         });
         if (res.ok) {
-          const data = await res.json();
+          const body = await res.json();
+          const data = body.data;
           setTables((prev) => [...prev, data]);
           showToast(`✅ ${tblLabel} added!`);
         }

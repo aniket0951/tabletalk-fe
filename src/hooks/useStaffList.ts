@@ -13,8 +13,8 @@ function fetchStaff(): Promise<ApiStaff[]> {
 
   fetchPromise = apiFetch("/api/staff")
     .then((r) => r.json())
-    .then((data) => {
-      const list = Array.isArray(data) ? data : [];
+    .then((body) => {
+      const list = Array.isArray(body.data) ? body.data : [];
       cachedStaff = list;
       fetchPromise = null;
       return list;

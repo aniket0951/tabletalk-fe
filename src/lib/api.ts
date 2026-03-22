@@ -70,3 +70,45 @@ export async function publicFetch(path: string, init?: RequestInit): Promise<Res
     headers,
   });
 }
+
+// ── Typed API response helpers ──────────────────────────────
+
+export interface ApiResponse<T> {
+  status_code: number;
+  message: string;
+  data: T;
+  debug_message?: string;
+  code?: string;
+}
+
+export class ApiError extends Error {
+  statusCode: number;
+  debugMessage?: string;
+  code?: string;
+
+  constructor(res: ApiResponse<null>) {
+    super(res.message);
+    this.name = "ApiError";
+    this.statusCode = res.status_code;
+    this.debugMessage = res.debug_message;
+    this.code = res.code;
+  }
+}
+
+async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
+  const body: ApiResponse<T> = await res.json();
+  if (body.status_code !== 200) {
+    throw new ApiError(body as ApiResponse<null>);
+  }
+  return body;
+}
+
+export async function apiRequest<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
+  const res = await apiFetch(path, init);
+  return parseResponse<T>(res);
+}
+
+export async function publicRequest<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
+  const res = await publicFetch(path, init);
+  return parseResponse<T>(res);
+}

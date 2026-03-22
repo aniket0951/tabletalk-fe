@@ -230,8 +230,8 @@ export default function OrderStatusPage({
         if (!r.ok) throw new Error();
         return r.json();
       })
-      .then((data) => {
-        setOrder(data);
+      .then((body) => {
+        setOrder(body.data);
         setLoading(false);
       })
       .catch(() => setLoading(false));

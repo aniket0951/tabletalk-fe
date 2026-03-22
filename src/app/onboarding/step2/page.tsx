@@ -50,8 +50,8 @@ export default function OnboardingStep2() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Failed to create subscription");
+        const body = await res.json();
+        setError(body.message || "Failed to create subscription");
         setLoading(false);
         return;
       }

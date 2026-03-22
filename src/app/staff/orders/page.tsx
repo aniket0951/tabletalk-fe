@@ -83,7 +83,7 @@ export default function StaffOrdersPage() {
     if (to) params.set("to", to);
     apiFetch(`/api/staff/orders?${params}`)
       .then((r) => r.json())
-      .then((data) => { setOrders(Array.isArray(data) ? data : []); })
+      .then((body) => { setOrders(Array.isArray(body.data) ? body.data : []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }
@@ -192,7 +192,7 @@ export default function StaffOrdersPage() {
     if (to) params.set("to", to);
     apiFetch(`/api/staff/orders?${params}`)
       .then((r) => r.json())
-      .then((data) => { setHistoryOrders(Array.isArray(data) ? data : []); })
+      .then((body) => { setHistoryOrders(Array.isArray(body.data) ? body.data : []); })
       .catch(() => {})
       .finally(() => { setHistoryLoading(false); setHistoryFetched(true); });
   }
@@ -226,7 +226,8 @@ export default function StaffOrdersPage() {
         body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {
-        const updated = await res.json();
+        const body = await res.json();
+        const updated = body.data;
         // Update local state immediately — don't wait for socket
         setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
         showToast(label);

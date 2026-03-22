@@ -60,7 +60,8 @@ export default function MenuPage() {
       if (star) params.set("star", String(star));
       const res = await publicFetch(`/public/ratings/${itemId}?${params}`);
       if (res.ok) {
-        const data = await res.json();
+        const body = await res.json();
+        const data = body.data;
         setReviewsModal((prev) => ({
           itemId,
           itemName,
@@ -78,8 +79,8 @@ export default function MenuPage() {
   const fetchCategories = useCallback(() => {
     apiFetch("/api/menu/categories")
       .then((r) => r.json())
-      .then((data) => {
-        const cats = Array.isArray(data) ? data : [];
+      .then((body) => {
+        const cats = Array.isArray(body.data) ? body.data : [];
         setCategories(cats);
         if (cats.length > 0 && !activeTab) {
           const firstId = cats[0].id;
@@ -105,9 +106,10 @@ export default function MenuPage() {
     setLoadingItems(catId);
     apiFetch(`/api/menu/categories/${catId}/items?page=1&limit=20`)
       .then((r) => r.json())
-      .then((data) => {
-        setCategoryItems((prev) => ({ ...prev, [catId]: data.items || [] }));
-        setCategoryHasMore((prev) => ({ ...prev, [catId]: data.pagination?.hasMore || false }));
+      .then((body) => {
+        const data = body.data;
+        setCategoryItems((prev) => ({ ...prev, [catId]: data?.items || [] }));
+        setCategoryHasMore((prev) => ({ ...prev, [catId]: data?.pagination?.hasMore || false }));
         setCategoryPage((prev) => ({ ...prev, [catId]: 1 }));
       })
       .catch(() => {})
@@ -121,12 +123,13 @@ export default function MenuPage() {
     setLoadingMore(true);
     try {
       const res = await apiFetch(`/api/menu/categories/${activeTab}/items?page=${nextPage}&limit=20`);
-      const data = await res.json();
+      const body = await res.json();
+      const data = body.data;
       setCategoryItems((prev) => ({
         ...prev,
-        [activeTab]: [...(prev[activeTab] || []), ...(data.items || [])],
+        [activeTab]: [...(prev[activeTab] || []), ...(data?.items || [])],
       }));
-      setCategoryHasMore((prev) => ({ ...prev, [activeTab]: data.pagination?.hasMore || false }));
+      setCategoryHasMore((prev) => ({ ...prev, [activeTab]: data?.pagination?.hasMore || false }));
       setCategoryPage((prev) => ({ ...prev, [activeTab]: nextPage }));
     } catch {}
     setLoadingMore(false);
@@ -236,7 +239,8 @@ export default function MenuPage() {
         body: JSON.stringify({ name: catName.trim(), emoji: catEmoji }),
       });
       if (res.ok) {
-        const newCat = await res.json();
+        const body = await res.json();
+        const newCat = body.data;
         showToast(`${catEmoji} ${catName} category added!`);
         // Add locally — no full refetch, stays on current tab
         setCategories((prev) => [...prev, {

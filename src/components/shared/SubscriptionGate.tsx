@@ -85,8 +85,8 @@ export function useSubscriptionGate(): SubscriptionGateResult {
         }
 
         // If trial creation fails (e.g., already had one), fall through to checkout
-        const data = await trialRes.json();
-        if (data.error !== "Active subscription already exists") {
+        const body = await trialRes.json();
+        if (body.message !== "Active subscription already exists") {
           // Try Razorpay checkout instead
         }
       } catch {
@@ -104,13 +104,14 @@ export function useSubscriptionGate(): SubscriptionGateResult {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error || "Checkout failed");
+        const body = await res.json();
+        showToast(body.message || "Checkout failed");
         setLoading(false);
         return;
       }
 
-      const checkout: CheckoutResponse = await res.json();
+      const body = await res.json();
+      const checkout: CheckoutResponse = body.data;
 
       openRazorpayCheckout({
         razorpayKeyId: checkout.razorpayKeyId,

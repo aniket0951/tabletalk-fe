@@ -32,15 +32,15 @@ export default function RegisterPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Registration failed");
+        const body = await res.json();
+        setError(body.message || "Registration failed");
         setLoading(false);
         return;
       }
 
-      const data = await res.json();
-      localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
-      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(data.user));
+      const body = await res.json();
+      localStorage.setItem(STORAGE_KEY.TOKEN, body.data.token);
+      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(body.data.user));
 
       router.push(ROUTES.ONBOARDING_STEP1);
     } catch {

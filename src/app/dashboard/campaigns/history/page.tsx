@@ -43,8 +43,9 @@ export default function CampaignHistoryPage() {
     // Fallback to API only if no cache
     apiFetch("/campaigns")
       .then((r) => r.json())
-      .then((data) => {
-        setCampaigns((data.campaigns || []).filter((c: ApiCampaign) => c.status !== "DRAFT"));
+      .then((body) => {
+        const data = body.data;
+        setCampaigns((data?.campaigns || []).filter((c: ApiCampaign) => c.status !== "DRAFT"));
         setCache("campaigns_history", data, TTL.FIVE_MIN);
         setLoading(false);
       })
@@ -59,8 +60,8 @@ export default function CampaignHistoryPage() {
     try {
       const res = await apiFetch(`/campaigns/${id}`);
       if (res.ok) {
-        const data = await res.json();
-        setDetailCampaign(data);
+        const body = await res.json();
+        setDetailCampaign(body.data);
       }
     } catch {
       // silently fail

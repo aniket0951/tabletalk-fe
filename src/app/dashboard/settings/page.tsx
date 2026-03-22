@@ -47,9 +47,9 @@ export default function SettingsPage() {
     setGeneratingCode(true);
     try {
       const res = await apiFetch("/api/restaurant/code", { method: "POST" });
-      const data = await res.json();
+      const body = await res.json();
       if (res.ok) {
-        setRestaurantCode(data.restaurantCode);
+        setRestaurantCode(body.data.restaurantCode);
         showToast("Restaurant code generated!");
       } else {
         showToast("Failed to generate code");

@@ -33,7 +33,7 @@ export default function CartPage({
     if (!addToOrderId) return;
     publicFetch(`/public/orders/${addToOrderId}`)
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setExistingOrder(data); })
+      .then((body) => { if (body?.data) setExistingOrder(body.data); })
       .catch(() => {});
   }, [addToOrderId]);
 
@@ -80,19 +80,20 @@ export default function CartPage({
       }
 
       if (!res.ok) {
-        const err = await res.json();
-        if (err.code === "TABLE_OCCUPIED") {
+        const body = await res.json();
+        if (body.code === "TABLE_OCCUPIED") {
           setOrderError("This table is currently occupied. Please wait for the current order to be settled before placing a new one.");
-        } else if (err.code === "ORDER_NOT_ADDABLE") {
-          setOrderError(err.error);
+        } else if (body.code === "ORDER_NOT_ADDABLE") {
+          setOrderError(body.message);
         } else {
-          showToast(err.error || "Failed to place order");
+          showToast(body.message || "Failed to place order");
         }
         setPlacing(false);
         return;
       }
 
-      const order = await res.json();
+      const body = await res.json();
+      const order = body.data;
       clearCart();
       router.push(orderStatusRoute(tableId, order.id));
     } catch {

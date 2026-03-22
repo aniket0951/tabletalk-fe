@@ -58,7 +58,8 @@ export async function cachedFetch<T>(
   try {
     const res = await fetcher();
     if (!res.ok) return null;
-    const data = await res.json();
+    const json = await res.json();
+    const data = json.data !== undefined ? json.data : json;
     setCache(key, data, ttlMs);
     return data;
   } catch {

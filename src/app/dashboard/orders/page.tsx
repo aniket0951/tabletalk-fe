@@ -49,11 +49,12 @@ export default function OrdersPage() {
     if (params.search) sp.set("search", params.search);
     apiFetch(`/api/orders?${sp}`)
       .then((r) => r.json())
-      .then((data) => {
-        setOrders(Array.isArray(data.orders) ? data.orders : []);
-        if (data.statusCounts) setStatusCounts(data.statusCounts);
-        if (data.totalAll != null) setTotalAll(data.totalAll);
-        if (data.pagination) setPagination(data.pagination);
+      .then((body) => {
+        const data = body.data;
+        setOrders(Array.isArray(data?.orders) ? data.orders : []);
+        if (data?.statusCounts) setStatusCounts(data.statusCounts);
+        if (data?.totalAll != null) setTotalAll(data.totalAll);
+        if (data?.pagination) setPagination(data.pagination);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

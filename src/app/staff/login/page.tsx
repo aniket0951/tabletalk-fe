@@ -39,13 +39,13 @@ export default function StaffLoginPage() {
         method: "POST",
         body: JSON.stringify({ restaurantCode: restaurantCode.toUpperCase(), pin }),
       });
-      const data = await res.json();
+      const body = await res.json();
 
       if (res.ok) {
-        localStorage.setItem(STORAGE_KEY.STAFF, JSON.stringify(data));
+        localStorage.setItem(STORAGE_KEY.STAFF, JSON.stringify(body.data));
         router.push(ROUTES.STAFF_ORDERS);
       } else {
-        setError(data.error || "Login failed");
+        setError(body.message || "Login failed");
       }
     } catch {
       setError("Something went wrong");

@@ -71,12 +71,13 @@ export default function CampaignsPage() {
         body: JSON.stringify({ type: cType, title: cTitle.trim(), message: cMessage.trim() }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        showToast(data.error || "Failed to create campaign");
+        const body = await res.json();
+        showToast(body.message || "Failed to create campaign");
         setSaving(false);
         return;
       }
-      const campaign = await res.json();
+      const body = await res.json();
+      const campaign = body.data;
       setDraftCampaign(campaign);
       setStep(3);
     } catch {
@@ -93,13 +94,14 @@ export default function CampaignsPage() {
 
       const res = await apiFetch(`/campaigns/${draftCampaign.id}/checkout`, { method: "POST" });
       if (!res.ok) {
-        const data = await res.json();
-        showToast(data.detail || data.error || "Checkout failed");
+        const body = await res.json();
+        showToast(body.debug_message || body.message || "Checkout failed");
         setPaying(false);
         return;
       }
 
-      const checkout: CampaignCheckoutResponse = await res.json();
+      const body = await res.json();
+      const checkout: CampaignCheckoutResponse = body.data;
 
       openRazorpayCheckout({
         razorpayKeyId: checkout.razorpayKeyId,

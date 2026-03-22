@@ -26,7 +26,7 @@ export default function CustomerLayout({
         if (!r.ok) throw new Error("Table not found");
         return r.json();
       })
-      .then(setTableInfo)
+      .then((body) => setTableInfo(body.data))
       .catch(() => setError("Table not found"));
   }, [tableId]);
 

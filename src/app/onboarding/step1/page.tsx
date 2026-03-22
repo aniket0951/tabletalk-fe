@@ -41,15 +41,15 @@ export default function OnboardingStep1() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.detail || data.error || "Failed to create restaurant");
+        const errBody = await res.json();
+        setError(errBody.debug_message || errBody.message || "Failed to create restaurant");
         setLoading(false);
         return;
       }
 
-      const data = await res.json();
+      const resBody = await res.json();
       // Save new token with restaurantId
-      if (data.token) localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
+      if (resBody.data.token) localStorage.setItem(STORAGE_KEY.TOKEN, resBody.data.token);
 
       router.push(ROUTES.ONBOARDING_STEP2);
     } catch (err) {

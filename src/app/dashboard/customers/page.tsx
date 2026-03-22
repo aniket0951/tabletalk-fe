@@ -43,10 +43,11 @@ export default function CustomersPage() {
     if (searchQuery) params.set("search", searchQuery);
     apiFetch(`/api/customers?${params}`)
       .then((r) => r.json())
-      .then((data) => {
-        setCustomers(Array.isArray(data.customers) ? data.customers : []);
-        if (data.stats) setStats(data.stats);
-        if (data.pagination) setPagination(data.pagination);
+      .then((body) => {
+        const data = body.data;
+        setCustomers(Array.isArray(data?.customers) ? data.customers : []);
+        if (data?.stats) setStats(data.stats);
+        if (data?.pagination) setPagination(data.pagination);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -86,8 +87,9 @@ export default function CustomersPage() {
     setLoadingOrders(true);
     apiFetch(`/api/orders?customerPhone=${encodeURIComponent(c.phone)}`)
       .then((r) => r.json())
-      .then((data) => {
-        const orders = Array.isArray(data) ? data : Array.isArray(data?.orders) ? data.orders : [];
+      .then((body) => {
+        const d = body.data;
+        const orders = Array.isArray(d) ? d : Array.isArray(d?.orders) ? d.orders : [];
         setCustomerOrders(orders);
         const first = statusGroups.find((st) => orders.some((o: ApiOrderSummary) => o.status === st));
         setExpandedStatus(first || null);

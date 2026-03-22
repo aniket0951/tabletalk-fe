@@ -37,9 +37,9 @@ export default function LoginPage() {
         return;
       }
 
-      const data = await res.json();
-      localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
-      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(data.user));
+      const body = await res.json();
+      localStorage.setItem(STORAGE_KEY.TOKEN, body.data.token);
+      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(body.data.user));
       router.push(ROUTES.DASHBOARD);
     } catch {
       setError("Something went wrong");
@@ -61,9 +61,9 @@ export default function LoginPage() {
         return;
       }
 
-      const data = await res.json();
-      localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
-      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(data.user));
+      const body = await res.json();
+      localStorage.setItem(STORAGE_KEY.TOKEN, body.data.token);
+      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(body.data.user));
 
       if (mode === "noSub") {
         localStorage.setItem(STORAGE_KEY.DEMO_NO_SUB, "true");

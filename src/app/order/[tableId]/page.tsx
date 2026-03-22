@@ -80,7 +80,8 @@ export default function MenuPage({
         if (star) params.set("star", String(star));
         const res = await publicFetch(`/public/ratings/${itemId}?${params}`);
         if (res.ok) {
-          const data = await res.json();
+          const body = await res.json();
+          const data = body.data;
           setReviewsModal((prev) => ({
             itemId,
             itemName,
@@ -117,7 +118,8 @@ export default function MenuPage({
   useEffect(() => {
     publicFetch(`/public/orders/active/${tableId}`)
       .then((r) => r.json())
-      .then((data) => {
+      .then((body) => {
+        const data = body.data;
         if (data.active && data.order) {
           setActiveOrder(data.order);
         }
@@ -133,6 +135,7 @@ export default function MenuPage({
     setRestaurantId(rid);
     publicFetch(`/public/menu/${rid}`)
       .then((r) => r.json())
+      .then((body) => body.data as CategorySummary[])
       .then((cats: CategorySummary[]) => {
         setCategories(cats);
         if (cats.length > 0) {
@@ -150,6 +153,7 @@ export default function MenuPage({
     setLoadingCategory(catId);
     publicFetch(`/public/menu/${rid}/category/${catId}`)
       .then((r) => r.json())
+      .then((body) => body.data as ApiMenuItem[])
       .then((items: ApiMenuItem[]) => {
         setCategoryItems((prev) => ({ ...prev, [catId]: items }));
       })
@@ -169,8 +173,8 @@ export default function MenuPage({
       const res = await publicFetch(
         `/public/orders/active-by-phone/${encodeURIComponent(phoneLookup.trim())}`,
       );
-      const data = await res.json();
-      setPhoneLookupResult(data.orders || []);
+      const body = await res.json();
+      setPhoneLookupResult(body.data?.orders || []);
     } catch {
       setPhoneLookupResult([]);
     }
