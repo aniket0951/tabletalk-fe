@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { apiFetch } from "@/lib/api";
+import { STORAGE_KEY } from "@/lib/storage-keys";
+import { ROUTES } from "@/lib/routes";
 
 interface StaffProfile {
   staffId: string;
@@ -20,7 +22,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     // Skip auth check on login page
-    if (pathname === "/staff/login") {
+    if (pathname === ROUTES.STAFF_LOGIN) {
       setChecking(false);
       return;
     }
@@ -31,17 +33,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         return r.json();
       })
       .then((data) => { setStaff(data); setChecking(false); })
-      .catch(() => { setChecking(false); router.push("/staff/login"); });
+      .catch(() => { setChecking(false); router.push(ROUTES.STAFF_LOGIN); });
   }, [pathname, router]);
 
   async function handleLogout() {
     await apiFetch("/api/staff/auth/logout", { method: "POST" });
-    localStorage.removeItem("staff");
-    router.push("/staff/login");
+    localStorage.removeItem(STORAGE_KEY.STAFF);
+    router.push(ROUTES.STAFF_LOGIN);
   }
 
   // Login page renders without header
-  if (pathname === "/staff/login") {
+  if (pathname === ROUTES.STAFF_LOGIN) {
     return <>{children}</>;
   }
 

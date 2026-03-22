@@ -1,6 +1,6 @@
 declare global {
   interface Window {
-    Razorpay: any;
+    Razorpay: new (options: Record<string, unknown>) => { on: (event: string, handler: (resp: unknown) => void) => void; open: () => void };
   }
 }
 
@@ -33,7 +33,7 @@ interface RazorpayCheckoutOptions {
     razorpay_order_id: string;
     razorpay_signature: string;
   }) => void;
-  onError: (error: any) => void;
+  onError: (error: unknown) => void;
   onDismiss?: () => void;
 }
 

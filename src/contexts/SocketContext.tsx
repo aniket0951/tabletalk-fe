@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { io, Socket } from "socket.io-client";
+import { STORAGE_KEY } from "@/lib/storage-keys";
 
 function createSocket(): Socket | null {
   if (typeof window === "undefined") return null;
   const token =
-    localStorage.getItem("token") ||
-    (() => { try { return JSON.parse(localStorage.getItem("staff") || "{}").token; } catch { return undefined; } })();
+    localStorage.getItem(STORAGE_KEY.TOKEN) ||
+    (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY.STAFF) || "{}").token; } catch { return undefined; } })();
 
   return io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3004", {
     transports: ["websocket", "polling"],

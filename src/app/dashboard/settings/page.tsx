@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle, useRestaurant } from "../layout";
@@ -90,7 +91,7 @@ export default function SettingsPage() {
       const res = await apiFetch("/api/user/delete", { method: "DELETE" });
       if (res.ok) {
         localStorage.clear();
-        router.push("/auth/login");
+        router.push(ROUTES.AUTH_LOGIN);
       } else {
         showToast("Failed to delete account");
         setDeleting(false);

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 
@@ -70,11 +71,11 @@ export default function OnboardingStep2() {
     } catch {
       // proceed even if it fails
     }
-    router.push("/dashboard");
+    router.push(ROUTES.DASHBOARD);
   }
 
   function handleSkipDefaults() {
-    router.push("/dashboard");
+    router.push(ROUTES.DASHBOARD);
   }
 
   return (
@@ -152,7 +153,7 @@ export default function OnboardingStep2() {
 
         <div className="flex items-center justify-between border-t border-border px-5 py-4 sm:px-8">
           <Link
-            href="/onboarding/step1"
+            href={ROUTES.ONBOARDING_STEP1}
             className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
           >
             ← Back

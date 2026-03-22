@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { STORAGE_KEY } from "@/lib/storage-keys";
+import { ROUTES } from "@/lib/routes";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,8 +16,8 @@ export default function LoginPage() {
   const [demoLoading, setDemoLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) router.replace("/dashboard");
+    const token = localStorage.getItem(STORAGE_KEY.TOKEN);
+    if (token) router.replace(ROUTES.DASHBOARD);
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -36,9 +38,9 @@ export default function LoginPage() {
       }
 
       const data = await res.json();
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      router.push("/dashboard");
+      localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
+      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(data.user));
+      router.push(ROUTES.DASHBOARD);
     } catch {
       setError("Something went wrong");
       setLoading(false);
@@ -60,16 +62,16 @@ export default function LoginPage() {
       }
 
       const data = await res.json();
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
+      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(data.user));
 
       if (mode === "noSub") {
-        localStorage.setItem("demo_no_sub", "true");
+        localStorage.setItem(STORAGE_KEY.DEMO_NO_SUB, "true");
       } else {
-        localStorage.removeItem("demo_no_sub");
+        localStorage.removeItem(STORAGE_KEY.DEMO_NO_SUB);
       }
 
-      router.push("/dashboard");
+      router.push(ROUTES.DASHBOARD);
     } catch {
       setError("Demo login failed");
       setDemoLoading(null);
@@ -157,7 +159,7 @@ export default function LoginPage() {
         <div className="mt-5 text-center text-[13px] text-text2">
           Don&apos;t have an account?{" "}
           <Link
-            href="/auth/register"
+            href={ROUTES.AUTH_REGISTER}
             className="cursor-pointer font-semibold text-accent"
           >
             Sign up free

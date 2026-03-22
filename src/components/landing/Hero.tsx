@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ROUTES } from "@/lib/routes";
 
 export default function Hero() {
   return (
@@ -18,7 +19,7 @@ export default function Hero() {
           Customers scan a QR code, chat with an AI, place orders — you get notified instantly. No app, no waiter, no friction.
         </p>
         <div className="flex flex-col items-center gap-[10px] sm:flex-row sm:justify-center lg:justify-start">
-          <Link href="/auth/register" className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-accent px-[26px] py-3 text-[15px] font-semibold text-white transition-all hover:bg-accent2 sm:w-auto">
+          <Link href={ROUTES.AUTH_REGISTER} className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-accent px-[26px] py-3 text-[15px] font-semibold text-white transition-all hover:bg-accent2 sm:w-auto">
             Get started free →
           </Link>
           <button className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-border2 bg-transparent px-[26px] py-3 text-[15px] font-semibold text-text transition-all hover:bg-surface2 sm:w-auto">

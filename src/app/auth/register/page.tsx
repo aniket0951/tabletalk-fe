@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { STORAGE_KEY } from "@/lib/storage-keys";
+import { ROUTES } from "@/lib/routes";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,8 +16,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) router.replace("/dashboard");
+    const token = localStorage.getItem(STORAGE_KEY.TOKEN);
+    if (token) router.replace(ROUTES.DASHBOARD);
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,10 +39,10 @@ export default function RegisterPage() {
       }
 
       const data = await res.json();
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
+      localStorage.setItem(STORAGE_KEY.USER, JSON.stringify(data.user));
 
-      router.push("/onboarding/step1");
+      router.push(ROUTES.ONBOARDING_STEP1);
     } catch {
       setError("Something went wrong");
       setLoading(false);
@@ -119,7 +121,7 @@ export default function RegisterPage() {
 
         <div className="mt-5 text-center text-[13px] text-text2">
           Already have an account?{" "}
-          <Link href="/auth/login" className="cursor-pointer font-semibold text-accent">
+          <Link href={ROUTES.AUTH_LOGIN} className="cursor-pointer font-semibold text-accent">
             Sign in
           </Link>
         </div>

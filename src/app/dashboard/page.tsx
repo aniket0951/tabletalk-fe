@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "./layout";
@@ -36,7 +37,7 @@ export default function DashboardOverview() {
     ])
       .then(([ordersData, statsData]) => {
         if (statsData?.noRestaurant) {
-          router.push("/onboarding/step1");
+          router.push(ROUTES.ONBOARDING_STEP1);
           return;
         }
         const list = Array.isArray(ordersData) ? ordersData : ordersData?.orders ?? [];

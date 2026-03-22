@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { apiFetch } from "@/lib/api";
+import { STORAGE_KEY } from "@/lib/storage-keys";
 import type { ApiOrder, OrderStatus } from "@/types";
 
 // Lean type matching what GET /staff/orders returns
@@ -92,7 +93,7 @@ export default function StaffOrdersPage() {
 
   const getMyStaffId = useCallback(() => {
     try {
-      const staffData = localStorage.getItem("staff");
+      const staffData = localStorage.getItem(STORAGE_KEY.STAFF);
       if (staffData) return JSON.parse(staffData).staffId;
     } catch {}
     return null;

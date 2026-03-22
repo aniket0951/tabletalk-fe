@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { ROUTES } from "@/lib/routes";
 
 const mainNav = [
   { icon: "◈", label: "Dashboard", href: "/dashboard" },
@@ -37,7 +38,7 @@ export default function Sidebar({ restName, subscriptionPlan, subscriptionStatus
 
   function handleLogout() {
     localStorage.clear();
-    router.push("/auth/login");
+    router.push(ROUTES.AUTH_LOGIN);
   }
 
   function isActive(href: string) {

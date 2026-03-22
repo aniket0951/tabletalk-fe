@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, use, useMemo } from "react";
 import Link from "next/link";
 import { publicFetch } from "@/lib/api";
+import { ratedKey } from "@/lib/storage-keys";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import type { ApiOrder, OrderStatus } from "@/types";
 
@@ -181,7 +182,7 @@ export default function OrderStatusPage({
 
   // Check if already rated this order
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem(`rated_${orderId}`)) {
+    if (typeof window !== "undefined" && localStorage.getItem(ratedKey(orderId))) {
       setRatingSubmitted(true);
     }
   }, [orderId]);
@@ -214,7 +215,7 @@ export default function OrderStatusPage({
       });
       if (res.ok) {
         setRatingSubmitted(true);
-        localStorage.setItem(`rated_${orderId}`, "true");
+        localStorage.setItem(ratedKey(orderId), "true");
       }
     } catch {
       // silently fail

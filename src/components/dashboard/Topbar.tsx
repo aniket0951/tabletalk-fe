@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ROUTES } from "@/lib/routes";
 import { useSocket } from "@/contexts/SocketContext";
 import { useSubscriptionStatus, useTrialDays } from "@/app/dashboard/layout";
 
@@ -19,7 +20,7 @@ export default function Topbar({ title, onAddItem, onMenuToggle, loading }: Topb
 
   function handleLogout() {
     localStorage.clear();
-    router.push("/auth/login");
+    router.push(ROUTES.AUTH_LOGIN);
   }
 
   return (

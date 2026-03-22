@@ -29,12 +29,23 @@ const timeline = [
   { key: "settledAt", label: "Settled", icon: "✅" },
 ];
 
-const statusOrder = ["placedAt", "confirmedAt", "cookingAt", "readyAt", "billedAt", "settledAt"];
+const statusOrder = [
+  "placedAt",
+  "confirmedAt",
+  "cookingAt",
+  "readyAt",
+  "billedAt",
+  "settledAt",
+];
 
 function formatTime(dateStr: string | null) {
   if (!dateStr) return "Pending";
   const d = new Date(dateStr);
-  return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+  return d.toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 function isFullOrder(o: ApiOrder | ApiOrderSummary): o is ApiOrder {
@@ -45,41 +56,68 @@ function SkeletonLine({ w = "w-24" }: { w?: string }) {
   return <div className={`h-3 ${w} rounded bg-border animate-pulse`} />;
 }
 
-export default function OrderDrawer({ order: input, onClose, staffList = [] }: OrderDrawerProps) {
+export default function OrderDrawer({
+  order: input,
+  onClose,
+  staffList = [],
+}: OrderDrawerProps) {
   const { showToast } = useToast();
-  const [detail, setDetail] = useState<ApiOrder | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [fetchedDetail, setFetchedDetail] = useState<ApiOrder | null>(null);
+  const [fetchedForId, setFetchedForId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [assigningStaff, setAssigningStaff] = useState(false);
 
-  const inputId = input?.id;
+  const inputId = input?.id ?? null;
   const inputIsFull = input && isFullOrder(input);
+
+  // Derive detail: full input > fetched data > null
+  const detail = inputIsFull
+    ? (input as ApiOrder)
+    : fetchedForId === inputId
+      ? fetchedDetail
+      : null;
+
+  // Derive loading: need fetch but haven't completed yet
+  const needsFetch = !!inputId && !inputIsFull;
+  const loadingDetail = needsFetch && fetchedForId !== inputId;
+
+  const setDetail = (d: ApiOrder | null) => {
+    setFetchedDetail(d);
+    setFetchedForId(d ? inputId : null);
+  };
 
   // If we got a summary (no items array), fetch full detail
   useEffect(() => {
-    if (!inputId) { setDetail(null); return; }
-    if (inputIsFull) { setDetail(input as ApiOrder); return; }
-    setLoadingDetail(true);
-    setDetail(null);
+    if (!inputId || inputIsFull || fetchedForId === inputId) return;
+    let cancelled = false;
     apiFetch(`/api/orders/${inputId}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data) setDetail(data); })
-      .catch(() => {})
-      .finally(() => setLoadingDetail(false));
-  }, [inputId, inputIsFull]);
+      .then((data) => {
+        if (!cancelled && data) {
+          setFetchedDetail(data);
+          setFetchedForId(inputId);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [inputId, inputIsFull, fetchedForId]);
 
   if (!input) return null;
 
   const st = statusMap[input.status] || statusMap.NEW;
   const order = detail; // full detail (may be null while loading)
 
-  const currentStatusKey = order ? ({
-    NEW: "confirmedAt",
-    COOKING: "cookingAt",
-    READY: "readyAt",
-    BILLED: "billedAt",
-    SETTLED: "settledAt",
-  }[order.status] || "placedAt") : "";
+  const currentStatusKey = order
+    ? {
+        NEW: "confirmedAt",
+        COOKING: "cookingAt",
+        READY: "readyAt",
+        BILLED: "billedAt",
+        SETTLED: "settledAt",
+      }[order.status] || "placedAt"
+    : "";
   const currentIdx = statusOrder.indexOf(currentStatusKey);
 
   async function handleAction(nextStatus: string, label: string) {
@@ -90,8 +128,6 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
         body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {
-        const updated = await res.json();
-
         showToast(label);
       } else {
         showToast("Failed to update order");
@@ -131,9 +167,7 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
         className="fixed inset-0 z-200 bg-black/35 backdrop-blur-[2px] block animate-fadeO"
         onClick={onClose}
       />
-      <div
-        className="fixed right-0 top-0 z-201 flex h-screen w-full flex-col border-l border-border bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] transition-transform duration-300 sm:w-[460px] translate-x-0"
-      >
+      <div className="fixed right-0 top-0 z-201 flex h-screen w-full flex-col border-l border-border bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] transition-transform duration-300 sm:w-[460px] translate-x-0">
         {/* Header — always visible */}
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
           <div>
@@ -141,7 +175,9 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
               {input.orderCode} · {input.table?.label || "Unknown"}
             </div>
             <div className="mt-1">
-              <span className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${st.cls}`}>
+              <span
+                className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${st.cls}`}
+              >
                 {st.label}
               </span>
             </div>
@@ -157,22 +193,56 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
         {/* Loading bar */}
         {loadingDetail && (
           <div className="h-[2px] w-full overflow-hidden bg-border">
-            <div className="h-full w-1/3 bg-accent" style={{ animation: "loading 1s ease-in-out infinite" }} />
+            <div
+              className="h-full w-1/3 bg-accent"
+              style={{ animation: "loading 1s ease-in-out infinite" }}
+            />
           </div>
         )}
 
         <div className="flex-1 overflow-y-auto">
           {/* Customer */}
           <div className="border-b border-border px-5 py-[14px]">
-            <div className="mb-[10px] font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text3">Customer</div>
-            <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Table</span><span className="text-xs font-semibold">{input.table?.label || "—"}</span></div>
-            <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Name</span><span className="text-xs font-semibold">{order?.customerName || ("customerName" in input ? input.customerName : "—") || "—"}</span></div>
-            <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Phone</span><span className="font-mono text-xs font-semibold">{order?.customerPhone || ("customerPhone" in input ? input.customerPhone : "—")}</span></div>
-            <div className="mb-1.5 flex justify-between"><span className="text-xs text-text2">Placed at</span><span className="font-mono text-xs font-semibold">{formatTime(input.placedAt)}</span></div>
+            <div className="mb-[10px] font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text3">
+              Customer
+            </div>
+            <div className="mb-1.5 flex justify-between">
+              <span className="text-xs text-text2">Table</span>
+              <span className="text-xs font-semibold">
+                {input.table?.label || "—"}
+              </span>
+            </div>
+            <div className="mb-1.5 flex justify-between">
+              <span className="text-xs text-text2">Name</span>
+              <span className="text-xs font-semibold">
+                {order?.customerName ||
+                  ("customerName" in input ? input.customerName : "—") ||
+                  "—"}
+              </span>
+            </div>
+            <div className="mb-1.5 flex justify-between">
+              <span className="text-xs text-text2">Phone</span>
+              <span className="font-mono text-xs font-semibold">
+                {order?.customerPhone ||
+                  ("customerPhone" in input ? input.customerPhone : "—")}
+              </span>
+            </div>
+            <div className="mb-1.5 flex justify-between">
+              <span className="text-xs text-text2">Placed at</span>
+              <span className="font-mono text-xs font-semibold">
+                {formatTime(input.placedAt)}
+              </span>
+            </div>
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-xs text-text2">Assigned to</span>
-              {input.status === "SETTLED" || !order || staffList.length === 0 ? (
-                <span className="text-xs font-semibold">{order?.staff ? `${order.staff.name} (${order.staff.role})` : (input.staff?.name || "Unassigned")}</span>
+              {input.status === "SETTLED" ||
+              !order ||
+              staffList.length === 0 ? (
+                <span className="text-xs font-semibold">
+                  {order?.staff
+                    ? `${order.staff.name} (${order.staff.role})`
+                    : input.staff?.name || "Unassigned"}
+                </span>
               ) : (
                 <select
                   className="rounded-[5px] border border-border bg-surface px-2 py-[3px] text-xs font-semibold outline-none focus:border-accent"
@@ -182,43 +252,76 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
                 >
                   <option value="">Unassigned</option>
                   {staffList.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.role})
+                    </option>
                   ))}
                 </select>
               )}
             </div>
             {order?.specialNote && (
-              <div className="flex justify-between"><span className="text-xs text-text2">Note</span><span className="text-xs font-semibold italic text-amber">&quot;{order.specialNote}&quot;</span></div>
+              <div className="flex justify-between">
+                <span className="text-xs text-text2">Note</span>
+                <span className="text-xs font-semibold italic text-amber">
+                  &quot;{order.specialNote}&quot;
+                </span>
+              </div>
             )}
           </div>
 
           {/* Items */}
           <div className="border-b border-border px-5 py-[14px]">
-            <div className="mb-[10px] font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text3">Items</div>
+            <div className="mb-[10px] font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text3">
+              Items
+            </div>
             {!order ? (
               <div className="space-y-3 py-2">
-                {Array.from({ length: ("_count" in input ? input._count?.items : 2) || 2 }).map((_, i) => (
+                {Array.from({
+                  length: ("_count" in input ? input._count?.items : 2) || 2,
+                }).map((_, i) => (
                   <div key={i} className="flex items-center gap-[10px]">
                     <div className="h-[22px] w-[22px] rounded-[5px] bg-border animate-pulse" />
                     <SkeletonLine w="w-32" />
-                    <div className="ml-auto"><SkeletonLine w="w-12" /></div>
+                    <div className="ml-auto">
+                      <SkeletonLine w="w-12" />
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
               <>
                 {order.items.map((item, i) => (
-                  <div key={i} className="flex items-center gap-[10px] border-b border-border py-2 last:border-b-0">
-                    <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] border border-border bg-surface2 font-mono text-[11px] font-bold">{item.quantity}×</div>
-                    <div className="flex-1 text-xs font-medium">{item.menuItem.name}</div>
-                    <div className={`h-[10px] w-[10px] shrink-0 rounded-[2px] ${item.menuItem.type === "VEG" ? "bg-green-mid" : "bg-red"}`} />
-                    <div className="font-mono text-xs font-semibold">₹{item.quantity * item.unitPrice}</div>
+                  <div
+                    key={i}
+                    className="flex items-center gap-[10px] border-b border-border py-2 last:border-b-0"
+                  >
+                    <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] border border-border bg-surface2 font-mono text-[11px] font-bold">
+                      {item.quantity}×
+                    </div>
+                    <div className="flex-1 text-xs font-medium">
+                      {item.menuItem.name}
+                    </div>
+                    <div
+                      className={`h-[10px] w-[10px] shrink-0 rounded-[2px] ${item.menuItem.type === "VEG" ? "bg-green-mid" : "bg-red"}`}
+                    />
+                    <div className="font-mono text-xs font-semibold">
+                      ₹{item.quantity * item.unitPrice}
+                    </div>
                   </div>
                 ))}
                 <div className="mt-3">
-                  <div className="mb-1.5 flex justify-between text-[13px]"><span className="text-text2">Subtotal</span><span className="font-mono">₹{order.subtotal}</span></div>
-                  <div className="mb-1.5 flex justify-between text-[13px]"><span className="text-text2">GST (5%)</span><span className="font-mono">₹{order.tax}</span></div>
-                  <div className="mt-[3px] flex justify-between border-t border-border pt-[9px] text-sm font-bold"><span>Total</span><span className="font-mono">₹{order.total}</span></div>
+                  <div className="mb-1.5 flex justify-between text-[13px]">
+                    <span className="text-text2">Subtotal</span>
+                    <span className="font-mono">₹{order.subtotal}</span>
+                  </div>
+                  <div className="mb-1.5 flex justify-between text-[13px]">
+                    <span className="text-text2">GST (5%)</span>
+                    <span className="font-mono">₹{order.tax}</span>
+                  </div>
+                  <div className="mt-[3px] flex justify-between border-t border-border pt-[9px] text-sm font-bold">
+                    <span>Total</span>
+                    <span className="font-mono">₹{order.total}</span>
+                  </div>
                 </div>
               </>
             )}
@@ -226,7 +329,9 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
 
           {/* Timeline */}
           <div className="px-5 py-[14px]">
-            <div className="mb-[10px] font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text3">Timeline</div>
+            <div className="mb-[10px] font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text3">
+              Timeline
+            </div>
             {!order ? (
               <div className="space-y-3 py-2">
                 {timeline.map((step) => (
@@ -238,20 +343,29 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
               </div>
             ) : (
               timeline.map((step, i) => {
-                const value = order[step.key as keyof ApiOrder] as string | null;
+                const value = order[step.key as keyof ApiOrder] as
+                  | string
+                  | null;
                 const isDone = !!value && i < currentIdx;
                 const isActive = i === currentIdx;
                 return (
-                  <div key={step.key} className="relative flex items-start gap-[11px] pb-[13px] last:pb-0">
+                  <div
+                    key={step.key}
+                    className="relative flex items-start gap-[11px] pb-[13px] last:pb-0"
+                  >
                     {i < timeline.length - 1 && (
                       <div className="absolute bottom-0 left-[9px] top-5 w-px bg-border" />
                     )}
-                    <div className={`z-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] ${isDone ? "border-green-mid bg-green-mid text-white" : isActive ? "border-accent bg-accent text-white shadow-[0_0_0_3px_rgba(212,82,42,.15)]" : "border-border bg-surface2"}`}>
+                    <div
+                      className={`z-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] ${isDone ? "border-green-mid bg-green-mid text-white" : isActive ? "border-accent bg-accent text-white shadow-[0_0_0_3px_rgba(212,82,42,.15)]" : "border-border bg-surface2"}`}
+                    >
                       {isDone ? "✓" : isActive ? step.icon : ""}
                     </div>
                     <div>
                       <div className="text-xs font-semibold">{step.label}</div>
-                      <div className="mt-[1px] font-mono text-[11px] text-text3">{formatTime(value)}</div>
+                      <div className="mt-[1px] font-mono text-[11px] text-text3">
+                        {formatTime(value)}
+                      </div>
                     </div>
                   </div>
                 );
@@ -265,31 +379,54 @@ export default function OrderDrawer({ order: input, onClose, staffList = [] }: O
           <div className="flex shrink-0 gap-2 border-t border-border bg-surface px-5 py-3">
             {order.status === "NEW" && (
               <>
-                <button onClick={() => handleAction("COOKING", "Marked as cooking")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50">
+                <button
+                  onClick={() => handleAction("COOKING", "Marked as cooking")}
+                  disabled={actionLoading}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50"
+                >
                   {actionLoading ? "Updating..." : "✓ Mark Cooking"}
                 </button>
-                <button onClick={onClose} className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2">
+                <button
+                  onClick={onClose}
+                  className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2"
+                >
                   Reject
                 </button>
               </>
             )}
             {order.status === "COOKING" && (
-              <button onClick={() => handleAction("READY", "Marked as ready")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50">
+              <button
+                onClick={() => handleAction("READY", "Marked as ready")}
+                disabled={actionLoading}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50"
+              >
                 {actionLoading ? "Updating..." : "🔔 Mark Ready"}
               </button>
             )}
             {order.status === "READY" && (
-              <button onClick={() => handleAction("BILLED", "Bill sent")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white hover:bg-accent2 disabled:opacity-50">
+              <button
+                onClick={() => handleAction("BILLED", "Bill sent")}
+                disabled={actionLoading}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white hover:bg-accent2 disabled:opacity-50"
+              >
                 {actionLoading ? "Updating..." : "🧾 Send Bill"}
               </button>
             )}
             {order.status === "BILLED" && (
-              <button onClick={() => handleAction("SETTLED", "Marked as settled")} disabled={actionLoading} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50">
+              <button
+                onClick={() => handleAction("SETTLED", "Marked as settled")}
+                disabled={actionLoading}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[rgba(22,101,52,.2)] bg-green-bg px-[18px] py-[9px] text-[13px] font-semibold text-green disabled:opacity-50"
+              >
                 {actionLoading ? "Updating..." : "✅ Mark Settled"}
               </button>
             )}
             {order.status === "SETTLED" && (
-              <button disabled className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text opacity-50">
+              <button
+                disabled
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] pDiagnostics:
+Unexpected any. Specify a different type. [@typescript-eslint/no-explicit-any]y-[9px] text-[13px] font-semibold text-text opacity-50"
+              >
                 ✅ Complete
               </button>
             )}

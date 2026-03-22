@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ROUTES } from "@/lib/routes";
 
 export default function NotFound() {
   return (
@@ -15,7 +16,7 @@ export default function NotFound() {
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/dashboard"
+            href={ROUTES.DASHBOARD}
             className="inline-flex items-center justify-center rounded-lg bg-accent px-5 py-[10px] text-[13px] font-semibold text-white transition-all hover:bg-accent2"
           >
             Go to Dashboard

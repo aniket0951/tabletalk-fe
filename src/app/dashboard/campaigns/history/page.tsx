@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
 import { useSidebarToggle } from "../../layout";
 import { apiFetch } from "@/lib/api";
@@ -74,7 +75,7 @@ export default function CampaignHistoryPage() {
         {/* Header */}
         <div className="mb-[14px] flex items-center gap-3">
           <Link
-            href="/dashboard/campaigns"
+            href={ROUTES.CAMPAIGNS}
             className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-border bg-surface text-sm text-text2 transition-all hover:bg-surface2"
           >
             ←

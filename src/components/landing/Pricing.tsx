@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ROUTES } from "@/lib/routes";
 
 const plans = [
   { name: "Starter", price: "₹999", desc: "For small restaurants getting started with WhatsApp ordering", features: ["1 restaurant", "Dine-In or Walk-In mode", "Up to 500 orders/month", "Owner WhatsApp notifications"], cta: "Start free trial", ctaStyle: "outline" as const, popular: false },
@@ -31,7 +32,7 @@ export default function Pricing() {
               </div>
             ))}
             <div className="mt-4">
-              <Link href="/auth/register" className={`flex w-full items-center justify-center rounded-lg px-[18px] py-[9px] text-[13px] font-semibold transition-all ${plan.ctaStyle === "primary" ? "bg-accent text-white hover:bg-accent2" : "border-[1.5px] border-border2 bg-transparent text-text hover:bg-surface2"}`}>
+              <Link href={ROUTES.AUTH_REGISTER} className={`flex w-full items-center justify-center rounded-lg px-[18px] py-[9px] text-[13px] font-semibold transition-all ${plan.ctaStyle === "primary" ? "bg-accent text-white hover:bg-accent2" : "border-[1.5px] border-border2 bg-transparent text-text hover:bg-surface2"}`}>
                 {plan.cta}
               </Link>
             </div>

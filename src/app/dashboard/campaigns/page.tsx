@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../layout";
@@ -244,7 +245,7 @@ export default function CampaignsPage() {
 
         {/* View History Link */}
         <Link
-          href="/dashboard/campaigns/history"
+          href={ROUTES.CAMPAIGNS_HISTORY}
           className="mb-5 flex items-center justify-between rounded-[10px] border border-border bg-surface px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,.07)] transition-all hover:shadow-md"
         >
           <div className="flex items-center gap-2">

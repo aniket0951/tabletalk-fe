@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import type { MenuItemType } from "@/types";
+import { cartKey } from "@/lib/storage-keys";
 
 export interface CartItem {
   menuItemId: string;
@@ -34,7 +35,7 @@ export function useCart() {
 }
 
 export function CartProvider({ tableId, children }: { tableId: string; children: ReactNode }) {
-  const storageKey = `cart_${tableId}`;
+  const storageKey = cartKey(tableId);
 
   const [items, setItems] = useState<CartItem[]>(() => {
     if (typeof window === "undefined") return [];

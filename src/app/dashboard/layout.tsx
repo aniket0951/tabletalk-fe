@@ -5,6 +5,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import { SocketProvider, useSocket } from "@/contexts/SocketContext";
 import { apiFetch } from "@/lib/api";
 import { cachedFetch, TTL } from "@/lib/cache";
+import { STORAGE_KEY } from "@/lib/storage-keys";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -88,7 +89,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const noSub = localStorage.getItem("demo_no_sub");
+    const noSub = localStorage.getItem(STORAGE_KEY.DEMO_NO_SUB);
     if (noSub === "true") setPlan(null);
 
     // Cache restaurant data for 1 day

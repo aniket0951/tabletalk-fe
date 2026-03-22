@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 import { publicFetch } from "@/lib/api";
+import { orderStatusRoute } from "@/lib/routes";
 import type { ApiOrder } from "@/types";
 
 export default function CartPage({
@@ -93,7 +94,7 @@ export default function CartPage({
 
       const order = await res.json();
       clearCart();
-      router.push(`/order/${tableId}/status/${order.id}`);
+      router.push(orderStatusRoute(tableId, order.id));
     } catch {
       showToast("Something went wrong");
       setPlacing(false);

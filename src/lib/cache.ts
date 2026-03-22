@@ -1,3 +1,5 @@
+import { cacheKey } from "./storage-keys";
+
 // Simple TTL cache using localStorage
 // Usage: const data = await cachedFetch("subscription", () => apiFetch("/api/billing/subscription"), 24 * 60 * 60 * 1000);
 
@@ -9,11 +11,11 @@ interface CacheEntry<T> {
 export function getCached<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(`cache_${key}`);
+    const raw = localStorage.getItem(cacheKey(key));
     if (!raw) return null;
     const entry: CacheEntry<T> = JSON.parse(raw);
     if (Date.now() > entry.expiry) {
-      localStorage.removeItem(`cache_${key}`);
+      localStorage.removeItem(cacheKey(key));
       return null;
     }
     return entry.data;
@@ -26,7 +28,7 @@ export function setCache<T>(key: string, data: T, ttlMs: number): void {
   if (typeof window === "undefined") return;
   try {
     const entry: CacheEntry<T> = { data, expiry: Date.now() + ttlMs };
-    localStorage.setItem(`cache_${key}`, JSON.stringify(entry));
+    localStorage.setItem(cacheKey(key), JSON.stringify(entry));
   } catch {
     // localStorage full or unavailable
   }
@@ -34,7 +36,7 @@ export function setCache<T>(key: string, data: T, ttlMs: number): void {
 
 export function clearCache(key: string): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(`cache_${key}`);
+  localStorage.removeItem(cacheKey(key));
 }
 
 // TTL constants

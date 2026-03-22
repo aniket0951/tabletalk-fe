@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ROUTES } from "@/lib/routes";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -34,13 +35,13 @@ export default function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden gap-2 md:flex">
           <Link
-            href="/auth/login"
+            href={ROUTES.AUTH_LOGIN}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2"
           >
             Login
           </Link>
           <Link
-            href="/auth/register"
+            href={ROUTES.AUTH_REGISTER}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-4.5 py-2.25 text-[13px] font-semibold text-white transition-all hover:bg-accent2"
           >
             Start Free →
@@ -66,13 +67,13 @@ export default function Navbar() {
           </div>
           <div className="mt-4 flex gap-2">
             <Link
-              href="/auth/login"
+              href={ROUTES.AUTH_LOGIN}
               className="flex flex-1 items-center justify-center rounded-lg border-[1.5px] border-border2 bg-transparent py-2.25 text-[13px] font-semibold text-text"
             >
               Login
             </Link>
             <Link
-              href="/auth/register"
+              href={ROUTES.AUTH_REGISTER}
               className="flex flex-1 items-center justify-center rounded-lg bg-accent py-2.25 text-[13px] font-semibold text-white"
             >
               Start Free →

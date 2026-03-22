@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { STORAGE_KEY } from "@/lib/storage-keys";
+import { ROUTES } from "@/lib/routes";
 
 export default function StaffLoginPage() {
   const router = useRouter();
@@ -13,11 +15,11 @@ export default function StaffLoginPage() {
   const [showPin, setShowPin] = useState(false);
 
   useEffect(() => {
-    const staffData = localStorage.getItem("staff");
+    const staffData = localStorage.getItem(STORAGE_KEY.STAFF);
     if (staffData) {
       try {
         const { token } = JSON.parse(staffData);
-        if (token) router.replace("/staff/orders");
+        if (token) router.replace(ROUTES.STAFF_ORDERS);
       } catch {}
     }
   }, [router]);
@@ -40,8 +42,8 @@ export default function StaffLoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem("staff", JSON.stringify(data));
-        router.push("/staff/orders");
+        localStorage.setItem(STORAGE_KEY.STAFF, JSON.stringify(data));
+        router.push(ROUTES.STAFF_ORDERS);
       } else {
         setError(data.error || "Login failed");
       }

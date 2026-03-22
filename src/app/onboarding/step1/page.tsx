@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { STORAGE_KEY } from "@/lib/storage-keys";
+import { ROUTES } from "@/lib/routes";
 import type { CreateRestaurantReq } from "@/types";
 
 export default function OnboardingStep1() {
@@ -47,9 +49,9 @@ export default function OnboardingStep1() {
 
       const data = await res.json();
       // Save new token with restaurantId
-      if (data.token) localStorage.setItem("token", data.token);
+      if (data.token) localStorage.setItem(STORAGE_KEY.TOKEN, data.token);
 
-      router.push("/onboarding/step2");
+      router.push(ROUTES.ONBOARDING_STEP2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
       setLoading(false);
