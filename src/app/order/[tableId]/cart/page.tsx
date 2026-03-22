@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 import { publicFetch } from "@/lib/api";
+import type { ApiOrder } from "@/types";
 
 export default function CartPage({
   params,
@@ -24,12 +25,22 @@ export default function CartPage({
   const [specialNote, setSpecialNote] = useState("");
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const [existingOrder, setExistingOrder] = useState<ApiOrder | null>(null);
+
+  // Fetch existing order details when in add-to mode (to get phone)
+  useEffect(() => {
+    if (!addToOrderId) return;
+    publicFetch(`/public/orders/${addToOrderId}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setExistingOrder(data); })
+      .catch(() => {});
+  }, [addToOrderId]);
 
   const tax = Math.round(subtotal * 0.05 * 100) / 100;
   const total = Math.round((subtotal + tax) * 100) / 100;
 
   async function placeOrder() {
-    if (!phone.trim()) {
+    if (!addToOrderId && !phone.trim()) {
       showToast("Please enter your phone number");
       return;
     }
@@ -39,11 +50,11 @@ export default function CartPage({
     try {
       let res: Response;
       if (addToOrderId) {
-        // Add items to existing order
+        // Add items to existing order — use phone from existing order
         res = await publicFetch(`/public/orders/${addToOrderId}/items`, {
           method: "PATCH",
           body: JSON.stringify({
-            customerPhone: phone.trim(),
+            customerPhone: existingOrder?.customerPhone || "",
             items: items.map((i) => ({
               menuItemId: i.menuItemId,
               quantity: i.quantity,
@@ -176,41 +187,45 @@ export default function CartPage({
         ))}
       </div>
 
-      {/* Special notes */}
-      <div className="mt-4">
-        <label className="mb-1 block text-xs font-semibold text-text2">Special Instructions</label>
-        <textarea
-          value={specialNote}
-          onChange={(e) => setSpecialNote(e.target.value)}
-          placeholder="e.g. No onions, extra spicy..."
-          rows={2}
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent resize-none"
-        />
-      </div>
+      {/* Special notes — only for new orders */}
+      {!addToOrderId && (
+        <div className="mt-4">
+          <label className="mb-1 block text-xs font-semibold text-text2">Special Instructions</label>
+          <textarea
+            value={specialNote}
+            onChange={(e) => setSpecialNote(e.target.value)}
+            placeholder="e.g. No onions, extra spicy..."
+            rows={2}
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent resize-none"
+          />
+        </div>
+      )}
 
-      {/* Customer info */}
-      <div className="mt-4 space-y-3">
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-text2">Phone Number *</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Enter your phone number"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
-          />
+      {/* Customer info — only for new orders */}
+      {!addToOrderId && (
+        <div className="mt-4 space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-text2">Phone Number *</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter your phone number"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-text2">Name (optional)</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
+            />
+          </div>
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-text2">Name (optional)</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your name"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
-          />
-        </div>
-      </div>
+      )}
 
       {/* Summary */}
       <div className="mt-4 rounded-[10px] border border-border bg-surface p-3">
