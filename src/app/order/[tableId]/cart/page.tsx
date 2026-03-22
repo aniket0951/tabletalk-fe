@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, use } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -14,6 +14,8 @@ export default function CartPage({
 }) {
   const { tableId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const addToOrderId = searchParams.get("addTo");
   const { items, addItem, removeItem, clearCart, subtotal } = useCart();
   const { showToast } = useToast();
 
@@ -35,24 +37,42 @@ export default function CartPage({
 
     setPlacing(true);
     try {
-      const res = await publicFetch("/public/orders", {
-        method: "POST",
-        body: JSON.stringify({
-          tableId,
-          customerPhone: phone.trim(),
-          customerName: name.trim(),
-          specialNote: specialNote.trim(),
-          items: items.map((i) => ({
-            menuItemId: i.menuItemId,
-            quantity: i.quantity,
-          })),
-        }),
-      });
+      let res: Response;
+      if (addToOrderId) {
+        // Add items to existing order
+        res = await publicFetch(`/public/orders/${addToOrderId}/items`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            customerPhone: phone.trim(),
+            items: items.map((i) => ({
+              menuItemId: i.menuItemId,
+              quantity: i.quantity,
+            })),
+          }),
+        });
+      } else {
+        // Create new order
+        res = await publicFetch("/public/orders", {
+          method: "POST",
+          body: JSON.stringify({
+            tableId,
+            customerPhone: phone.trim(),
+            customerName: name.trim(),
+            specialNote: specialNote.trim(),
+            items: items.map((i) => ({
+              menuItemId: i.menuItemId,
+              quantity: i.quantity,
+            })),
+          }),
+        });
+      }
 
       if (!res.ok) {
         const err = await res.json();
         if (err.code === "TABLE_OCCUPIED") {
           setOrderError("This table is currently occupied. Please wait for the current order to be settled before placing a new one.");
+        } else if (err.code === "ORDER_NOT_ADDABLE") {
+          setOrderError(err.error);
         } else {
           showToast(err.error || "Failed to place order");
         }
@@ -214,7 +234,9 @@ export default function CartPage({
         disabled={placing}
         className="mt-4 w-full rounded-xl bg-accent py-3 text-sm font-bold text-white transition-all hover:bg-accent2 disabled:opacity-50"
       >
-        {placing ? "Placing Order..." : `Place Order · ₹${total.toFixed(2)}`}
+        {placing
+          ? addToOrderId ? "Adding Items..." : "Placing Order..."
+          : addToOrderId ? `Add Items · ₹${total.toFixed(2)}` : `Place Order · ₹${total.toFixed(2)}`}
       </button>
 
       <div className="mt-2 text-center text-[11px] text-text3">

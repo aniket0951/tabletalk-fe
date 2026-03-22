@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { publicFetch } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
 import { useTableInfo } from "./layout";
@@ -26,6 +26,8 @@ export default function MenuPage({
   const { items: cartItems, addItem, removeItem, totalItems, subtotal } = useCart();
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const addToOrderId = searchParams.get("addTo");
   const [activeOrder, setActiveOrder] = useState<ApiOrder | null>(null);
   const [checkingOrder, setCheckingOrder] = useState(true);
   const [phoneLookup, setPhoneLookup] = useState("");
@@ -156,8 +158,16 @@ export default function MenuPage({
 
   return (
     <div className="animate-fadeIn pb-24">
+      {/* Add-to-order mode banner */}
+      {addToOrderId && (
+        <div className="mx-4 mt-3 rounded-[10px] border border-green-mid/30 bg-green-bg p-3">
+          <div className="text-sm font-bold text-green-mid">Adding items to your order</div>
+          <div className="mt-0.5 text-xs text-text2">Select items below, then view cart to submit</div>
+        </div>
+      )}
+
       {/* Active order banner */}
-      {activeOrder && (
+      {activeOrder && !addToOrderId && (
         <div className="mx-4 mt-3 rounded-[10px] border border-accent-border bg-accent-bg p-4">
           <div className="mb-1 text-sm font-bold">Your order is being prepared</div>
           <div className="mb-2 text-xs text-text2">
@@ -405,7 +415,7 @@ export default function MenuPage({
         <div className="fixed bottom-0 left-0 right-0 z-50 animate-slideUp">
           <div className="mx-auto max-w-lg px-4 pb-4">
             <Link
-              href={`/order/${tableId}/cart`}
+              href={`/order/${tableId}/cart${addToOrderId ? `?addTo=${addToOrderId}` : ""}`}
               className="flex items-center justify-between rounded-xl bg-accent px-4 py-3 text-white shadow-[0_4px_20px_rgba(212,82,42,.3)] transition-all hover:bg-accent2"
             >
               <div className="text-sm font-bold">

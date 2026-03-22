@@ -415,6 +415,16 @@ export default function OrderStatusPage({
         </button>
       )}
 
+      {/* Add more items — only for active orders */}
+      {(order.status === "NEW" || order.status === "COOKING" || order.status === "READY") && (
+        <Link
+          href={`/order/${tableId}?addTo=${orderId}`}
+          className="mb-2 block w-full rounded-xl bg-accent py-3 text-center text-sm font-bold text-white transition-all hover:bg-accent2"
+        >
+          Add More Items
+        </Link>
+      )}
+
       {/* Order again */}
       <Link
         href={`/order/${tableId}`}
