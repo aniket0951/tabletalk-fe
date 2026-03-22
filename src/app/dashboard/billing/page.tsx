@@ -107,13 +107,15 @@ export default function BillingPage() {
 
   const isActive = subscriptionStatus === "ACTIVE";
   const isTrial = subscriptionStatus === "TRIAL";
+  const isExpired = subscriptionStatus === "EXPIRED";
+  const isCancelled = subscriptionStatus === "CANCELLED";
   const hasActiveSub = isActive || isTrial;
   const isInactive = !hasActiveSub;
+  const canRenew = isExpired || isCancelled;
 
   function getPlanAction(planKey: PlanType) {
-    // Only mark as "current" if subscription is actually active/trial
     if (planKey === subscriptionPlan && hasActiveSub) return "current";
-    // If no active subscription, all plans show "subscribe"
+    if (canRenew && planKey === subscriptionPlan) return "renew";
     if (!subscriptionPlan || !hasActiveSub) return "subscribe";
     const order = ["STARTER", "GROWTH", "MULTI"];
     return order.indexOf(planKey) > order.indexOf(subscriptionPlan) ? "upgrade" : "downgrade";
@@ -131,6 +133,10 @@ export default function BillingPage() {
         ) : isActive ? (
           <div className="mb-[14px] flex items-start gap-[9px] rounded-lg border border-green-bg px-[14px] py-[10px] text-xs text-green-mid">
             ✓ <div><b>{subscriptionPlan} Plan</b> is active. Auto-collected via Razorpay.</div>
+          </div>
+        ) : isExpired ? (
+          <div className="mb-[14px] flex items-start gap-[9px] rounded-lg border border-[#fca5a5] bg-[rgba(239,68,68,.08)] px-[14px] py-[10px] text-xs text-[#f87171]">
+            ⚠️ <div>Your subscription has <b>expired</b>. Renew your plan to continue using TableTalk.</div>
           </div>
         ) : isInactive && subscriptionStatus ? (
           <div className="mb-[14px] flex items-start gap-[9px] rounded-lg border border-[#fca5a5] bg-[rgba(239,68,68,.08)] px-[14px] py-[10px] text-xs text-[#f87171]">
@@ -170,18 +176,20 @@ export default function BillingPage() {
                       onClick={() => handleCheckout(plan.key)}
                       disabled={checkoutLoading === plan.key}
                       className={`w-full rounded-lg px-[18px] py-[9px] text-xs font-semibold transition-all disabled:opacity-50 ${
-                        action === "upgrade" || action === "subscribe"
+                        action === "upgrade" || action === "subscribe" || action === "renew"
                           ? "bg-accent text-white hover:bg-accent2"
                           : "border-[1.5px] border-border2 bg-transparent text-text hover:bg-surface2"
                       }`}
                     >
                       {checkoutLoading === plan.key
                         ? "Processing..."
-                        : action === "upgrade"
-                          ? "Upgrade →"
-                          : action === "subscribe"
-                            ? "Subscribe →"
-                            : "Downgrade"}
+                        : action === "renew"
+                          ? "Renew →"
+                          : action === "upgrade"
+                            ? "Upgrade →"
+                            : action === "subscribe"
+                              ? "Subscribe →"
+                              : "Downgrade"}
                     </button>
                   )}
                 </div>
