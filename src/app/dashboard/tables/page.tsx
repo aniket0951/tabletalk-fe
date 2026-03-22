@@ -7,6 +7,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle, useRestaurant } from "../layout";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
+import { SOCKET_EVENT } from "@/lib/events";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
 import type { ApiDiningTable } from "@/types";
@@ -42,7 +43,7 @@ export default function TablesPage() {
     setTables((prev) => prev.map((x) => (x.id === t.id ? { ...x, ...t } : x)));
   }, []);
 
-  useSocketEvent("table:updated", handleTableUpdated);
+  useSocketEvent(SOCKET_EVENT.TABLE_UPDATED, handleTableUpdated);
 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 

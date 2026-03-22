@@ -6,6 +6,7 @@ import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { OrdersTableSkeleton } from "@/components/shared/Skeleton";
 import { useSidebarToggle } from "../layout";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
+import { SOCKET_EVENT } from "@/lib/events";
 import { apiFetch } from "@/lib/api";
 import { useStaffList } from "@/hooks/useStaffList";
 import type { ApiOrder, ApiOrderSummary } from "@/types";
@@ -103,8 +104,8 @@ export default function OrdersPage() {
     setOrders((prev) => [toSummary(created), ...prev]);
   }, []);
 
-  useSocketEvent("order:updated", handleSocketUpdate);
-  useSocketEvent("order:created", handleSocketCreate);
+  useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleSocketUpdate);
+  useSocketEvent(SOCKET_EVENT.ORDER_CREATED, handleSocketCreate);
 
   function handleFilterChange(value: string) {
     setActiveFilter(value);

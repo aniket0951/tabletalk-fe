@@ -5,6 +5,7 @@ import Link from "next/link";
 import { publicFetch } from "@/lib/api";
 import { ratedKey } from "@/lib/storage-keys";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
+import { SOCKET_EVENT } from "@/lib/events";
 import type { ApiOrder, OrderStatus } from "@/types";
 
 const statusSteps: { key: OrderStatus; label: string }[] = [
@@ -243,7 +244,7 @@ export default function OrderStatusPage({
     [orderId]
   );
 
-  useSocketEvent("order:updated", handleOrderUpdated);
+  useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdated);
 
   if (loading) {
     return <div className="py-12 text-center text-sm text-text3">Loading order...</div>;

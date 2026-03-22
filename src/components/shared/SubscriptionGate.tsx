@@ -1,16 +1,34 @@
 "use client";
 
 import { useState, useCallback, ReactNode } from "react";
-import { useSubscriptionPlan, useSubscriptionStatus, useTrialDays } from "@/app/dashboard/layout";
+import {
+  useSubscriptionPlan,
+  useSubscriptionStatus,
+} from "@/app/dashboard/layout";
 import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import type { CheckoutResponse, PlanType } from "@/types";
 
 const plans = [
-  { key: "STARTER" as PlanType, name: "Starter", price: "₹999/mo", desc: "Up to 500 orders · 1 mode" },
-  { key: "GROWTH" as PlanType, name: "Growth", price: "₹1,499/mo", desc: "Unlimited orders · Both modes" },
-  { key: "MULTI" as PlanType, name: "Multi-Branch", price: "₹3,999/mo", desc: "Up to 5 branches · All features" },
+  {
+    key: "STARTER" as PlanType,
+    name: "Starter",
+    price: "₹999/mo",
+    desc: "Up to 500 orders · 1 mode",
+  },
+  {
+    key: "GROWTH" as PlanType,
+    name: "Growth",
+    price: "₹1,499/mo",
+    desc: "Unlimited orders · Both modes",
+  },
+  {
+    key: "MULTI" as PlanType,
+    name: "Multi-Branch",
+    price: "₹3,999/mo",
+    desc: "Up to 5 branches · All features",
+  },
 ];
 
 interface SubscriptionGateResult {
@@ -21,7 +39,6 @@ interface SubscriptionGateResult {
 export function useSubscriptionGate(): SubscriptionGateResult {
   const subscriptionPlan = useSubscriptionPlan();
   const subscriptionStatus = useSubscriptionStatus();
-  const trialDays = useTrialDays();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PlanType>("GROWTH");
@@ -41,14 +58,18 @@ export function useSubscriptionGate(): SubscriptionGateResult {
         setOpen(true);
       }
     },
-    [hasActiveSub]
+    [hasActiveSub],
   );
 
   async function handleActivate() {
     setLoading(true);
 
     // If no subscription at all, start a free trial
-    if (!subscriptionStatus || subscriptionStatus === "EXPIRED" || subscriptionStatus === "CANCELLED") {
+    if (
+      !subscriptionStatus ||
+      subscriptionStatus === "EXPIRED" ||
+      subscriptionStatus === "CANCELLED"
+    ) {
       try {
         const trialRes = await apiFetch("/api/billing/subscription", {
           method: "POST",
@@ -136,9 +157,13 @@ export function useSubscriptionGate(): SubscriptionGateResult {
         {/* Gradient header */}
         <div className="bg-gradient-to-r from-accent-bg to-new-bg px-6 py-5 text-center">
           <div className="mb-2 text-[36px]">🔒</div>
-          <div className="text-base font-bold tracking-[-0.01em]">Subscription Required</div>
+          <div className="text-base font-bold tracking-[-0.01em]">
+            Subscription Required
+          </div>
           <div className="mt-1 text-[13px] text-text2">
-            {actionLabel ? `"${actionLabel}" requires an active plan.` : "This action requires an active plan."}
+            {actionLabel
+              ? `"${actionLabel}" requires an active plan.`
+              : "This action requires an active plan."}
           </div>
         </div>
 
@@ -156,16 +181,22 @@ export function useSubscriptionGate(): SubscriptionGateResult {
             >
               <div
                 className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                  selected === plan.key ? "border-accent bg-accent" : "border-border2"
+                  selected === plan.key
+                    ? "border-accent bg-accent"
+                    : "border-border2"
                 }`}
               >
-                {selected === plan.key && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                {selected === plan.key && (
+                  <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                )}
               </div>
               <div className="flex-1">
                 <div className="text-sm font-bold">{plan.name}</div>
                 <div className="text-[11px] text-text2">{plan.desc}</div>
               </div>
-              <div className="shrink-0 font-serif text-sm font-bold">{plan.price}</div>
+              <div className="shrink-0 font-serif text-sm font-bold">
+                {plan.price}
+              </div>
             </div>
           ))}
         </div>

@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BROWSER_EVENT } from "@/lib/events";
 
 export function OfflineBanner() {
-  const [isOffline, setIsOffline] = useState(false);
-  const [wasOffline, setWasOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(
+    () => typeof navigator !== "undefined" && !navigator.onLine
+  );
+  const [wasOffline, setWasOffline] = useState(
+    () => typeof navigator !== "undefined" && !navigator.onLine
+  );
 
   useEffect(() => {
     function handleOffline() {
@@ -14,22 +19,15 @@ export function OfflineBanner() {
 
     function handleOnline() {
       setIsOffline(false);
-      // Auto-dismiss "back online" after 3 seconds
       setTimeout(() => setWasOffline(false), 3000);
     }
 
-    // Check initial state
-    if (!navigator.onLine) {
-      setIsOffline(true);
-      setWasOffline(true);
-    }
-
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener("online", handleOnline);
+    window.addEventListener(BROWSER_EVENT.OFFLINE, handleOffline);
+    window.addEventListener(BROWSER_EVENT.ONLINE, handleOnline);
 
     return () => {
-      window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("online", handleOnline);
+      window.removeEventListener(BROWSER_EVENT.OFFLINE, handleOffline);
+      window.removeEventListener(BROWSER_EVENT.ONLINE, handleOnline);
     };
   }, []);
 

@@ -6,6 +6,7 @@ import { SocketProvider, useSocket } from "@/contexts/SocketContext";
 import { apiFetch } from "@/lib/api";
 import { cachedFetch, TTL } from "@/lib/cache";
 import { STORAGE_KEY } from "@/lib/storage-keys";
+import { SOCKET_EVENT } from "@/lib/events";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -59,11 +60,11 @@ function SidebarWithOrderCount({ restName, plan, subscriptionStatus, daysRemaini
       setActiveOrderCount(orderCountRef.current);
     };
 
-    socket.on("order:updated", handleOrderUpdated);
-    socket.on("order:created", handleOrderCreated);
+    socket.on(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdated);
+    socket.on(SOCKET_EVENT.ORDER_CREATED, handleOrderCreated);
     return () => {
-      socket.off("order:updated", handleOrderUpdated);
-      socket.off("order:created", handleOrderCreated);
+      socket.off(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdated);
+      socket.off(SOCKET_EVENT.ORDER_CREATED, handleOrderCreated);
     };
   }, [socket]);
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
+import { SOCKET_EVENT } from "@/lib/events";
 import { apiFetch } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import type { ApiOrder, OrderStatus } from "@/types";
@@ -141,8 +142,8 @@ export default function StaffOrdersPage() {
     }
   }, [getMyStaffId]);
 
-  useSocketEvent("order:updated", handleOrderUpdate);
-  useSocketEvent("order:created", handleOrderCreate);
+  useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdate);
+  useSocketEvent(SOCKET_EVENT.ORDER_CREATED, handleOrderCreate);
 
   function buildDateRange(filter: string, cFrom: string, cTo: string): { from: string; to: string } {
     const now = new Date();

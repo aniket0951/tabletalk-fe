@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { io, Socket } from "socket.io-client";
 import { STORAGE_KEY } from "@/lib/storage-keys";
+import { SOCKET_EVENT } from "@/lib/events";
 
 function createSocket(): Socket | null {
   if (typeof window === "undefined") return null;
@@ -37,9 +38,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("connect", () => setIsConnected(true));
-    socket.on("disconnect", () => setIsConnected(false));
-    socket.on("connect_error", (err) => {
+    socket.on(SOCKET_EVENT.CONNECT, () => setIsConnected(true));
+    socket.on(SOCKET_EVENT.DISCONNECT, () => setIsConnected(false));
+    socket.on(SOCKET_EVENT.CONNECT_ERROR, (err) => {
       console.warn("[socket] connection error:", err.message);
     });
 
