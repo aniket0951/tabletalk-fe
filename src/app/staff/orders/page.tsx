@@ -433,6 +433,7 @@ export default function StaffOrdersPage() {
                     <div className="mt-0.5 flex items-center gap-2 text-xs text-text2">
                       <span>{order.table?.label || "—"}</span>
                       <span className="text-text3">
+                        {new Date(order.placedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}{" "}
                         {new Date(order.placedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
