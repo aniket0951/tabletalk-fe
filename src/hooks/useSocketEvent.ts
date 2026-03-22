@@ -9,7 +9,10 @@ export function useSocketEvent<T = unknown>(
 ) {
   const { socket } = useSocket();
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+
+  useEffect(() => {
+    handlerRef.current = handler;
+  });
 
   useEffect(() => {
     if (!socket) return;
