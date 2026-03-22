@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
-import { useSidebarToggle } from "../layout";
+import { useSidebarToggle } from "../contexts";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
 import type { ApiCustomer, ApiOrderSummary } from "@/types";
@@ -54,8 +54,18 @@ export default function CustomersPage() {
   }, []);
 
   useEffect(() => {
-    fetchCustomers("", 1);
-  }, [fetchCustomers]);
+    const params = new URLSearchParams({ page: "1", limit: "20" });
+    apiFetch(`/api/customers?${params}`)
+      .then((r) => r.json())
+      .then((body) => {
+        const data = body.data;
+        setCustomers(Array.isArray(data?.customers) ? data.customers : []);
+        if (data?.stats) setStats(data.stats);
+        if (data?.pagination) setPagination(data.pagination);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   function handleSearchChange(value: string) {
     setSearch(value);

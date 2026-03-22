@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
-import { useSidebarToggle } from "../layout";
+import { useSidebarToggle } from "../contexts";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch, publicFetch } from "@/lib/api";
 import type { ApiMenuItem } from "@/types";

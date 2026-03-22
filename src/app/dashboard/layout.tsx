@@ -7,6 +7,13 @@ import { apiFetch } from "@/lib/api";
 import { cachedFetch, TTL } from "@/lib/cache";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { SOCKET_EVENT } from "@/lib/events";
+import {
+  SidebarToggleContext,
+  SubscriptionPlanContext,
+  SubscriptionStatusContext,
+  TrialDaysContext,
+  RestaurantContext,
+} from "./contexts";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,15 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 }
 
-interface RestaurantData {
-  id: string;
-  name: string;
-  phone: string;
-  city: string;
-  upiId: string;
-  serviceMode: string;
-  restaurantCode: string | null;
-}
+import type { RestaurantData } from "./contexts";
 
 // Isolated component for sidebar — order count updates only re-render this, not children
 function SidebarWithOrderCount({ restName, plan, subscriptionStatus, daysRemaining, sidebarOpen, onClose }: {
@@ -84,15 +83,13 @@ function SidebarWithOrderCount({ restName, plan, subscriptionStatus, daysRemaini
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const [restName, setRestName] = useState("");
   const [restaurantData, setRestaurantData] = useState<RestaurantData | null>(null);
-  const [plan, setPlan] = useState<string | null>("GROWTH");
+  const noSub = typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY.DEMO_NO_SUB) === "true";
+  const [plan, setPlan] = useState<string | null>(noSub ? null : "GROWTH");
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const noSub = localStorage.getItem(STORAGE_KEY.DEMO_NO_SUB);
-    if (noSub === "true") setPlan(null);
-
     // Cache restaurant data for 1 day
     cachedFetch<RestaurantData>("restaurant", () => apiFetch("/api/restaurant"), TTL.ONE_DAY)
       .then((data) => {
@@ -108,7 +105,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       () => apiFetch("/api/billing/subscription"),
       TTL.ONE_HOUR,
     ).then((data) => {
-      if (data && data.plan) setPlan(noSub === "true" ? null : data.plan);
+      if (data && data.plan) setPlan(noSub ? null : data.plan);
       if (data?.status) setSubscriptionStatus(data.status);
       if (data?.daysRemaining != null) setDaysRemaining(data.daysRemaining);
     });
@@ -141,18 +138,3 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-import { createContext, useContext } from "react";
-export const SidebarToggleContext = createContext<() => void>(() => {});
-export function useSidebarToggle() { return useContext(SidebarToggleContext); }
-
-export const SubscriptionPlanContext = createContext<string | null>("GROWTH");
-export function useSubscriptionPlan() { return useContext(SubscriptionPlanContext); }
-
-export const SubscriptionStatusContext = createContext<string | null>(null);
-export function useSubscriptionStatus() { return useContext(SubscriptionStatusContext); }
-
-export const TrialDaysContext = createContext<number | null>(null);
-export function useTrialDays() { return useContext(TrialDaysContext); }
-
-export const RestaurantContext = createContext<RestaurantData | null>(null);
-export function useRestaurant() { return useContext(RestaurantContext); }

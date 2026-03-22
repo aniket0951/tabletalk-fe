@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { OrdersTableSkeleton } from "@/components/shared/Skeleton";
-import { useSidebarToggle } from "../layout";
+import { useSidebarToggle } from "../contexts";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { SOCKET_EVENT } from "@/lib/events";
 import { apiFetch } from "@/lib/api";
@@ -61,8 +61,19 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    fetchOrders({ page: 1, status: "NEW" });
-  }, [fetchOrders]);
+    const sp = new URLSearchParams({ page: "1", limit: "20", status: "NEW" });
+    apiFetch(`/api/orders?${sp}`)
+      .then((r) => r.json())
+      .then((body) => {
+        const data = body.data;
+        setOrders(Array.isArray(data?.orders) ? data.orders : []);
+        if (data?.statusCounts) setStatusCounts(data.statusCounts);
+        if (data?.totalAll != null) setTotalAll(data.totalAll);
+        if (data?.pagination) setPagination(data.pagination);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   function refetch(overrides?: { status?: string; staffId?: string; search?: string; page?: number }) {
     fetchOrders({

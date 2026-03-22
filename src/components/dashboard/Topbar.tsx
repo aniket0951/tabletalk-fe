@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import { useSocket } from "@/contexts/SocketContext";
-import { useSubscriptionStatus, useTrialDays } from "@/app/dashboard/layout";
+import { useSubscriptionStatus, useTrialDays } from "@/app/dashboard/contexts";
 
 interface TopbarProps {
   title: string;

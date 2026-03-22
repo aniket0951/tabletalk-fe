@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
-import { useSidebarToggle } from "./layout";
+import { useSidebarToggle } from "./contexts";
 import { apiFetch } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/shared/Skeleton";
 import type { ApiOrderSummary, DashboardStats } from "@/types";
@@ -28,33 +28,38 @@ export default function DashboardOverview() {
   const toggleSidebar = useSidebarToggle();
 
   useEffect(() => {
-    Promise.all([
-      apiFetch("/api/orders").then((r) => (r.ok ? r.json().then((body: any) => body.data) : null)),
-      apiFetch("/api/dashboard/stats").then((r) => {
-        if (r.status === 422) return { noRestaurant: true };
-        return r.ok ? r.json().then((body: any) => body.data) : null;
-      }),
-    ])
-      .then(([ordersData, statsData]: any[]) => {
-        if (statsData?.noRestaurant) {
+    async function load() {
+      try {
+        const [ordersRes, statsRes] = await Promise.all([
+          apiFetch("/api/orders"),
+          apiFetch("/api/dashboard/stats"),
+        ]);
+
+        if (statsRes.status === 422) {
           router.push(ROUTES.ONBOARDING_STEP1);
           return;
         }
-        const list = ordersData?.orders ?? [];
-        setOrders(list);
-        setStats(statsData);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
+
+        if (ordersRes.ok) {
+          const ordersBody = await ordersRes.json();
+          setOrders(ordersBody.data?.orders ?? []);
+        }
+
+        if (statsRes.ok) {
+          const statsBody = await statsRes.json();
+          setStats(statsBody.data as DashboardStats);
+        }
+      } catch {}
+      setLoading(false);
+    }
+    load();
   }, []);
 
   function openOrder(order: ApiOrderSummary) {
     setSelectedSummary(order);
   }
 
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(id);

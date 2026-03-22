@@ -4,7 +4,7 @@ import { useState, useCallback, ReactNode } from "react";
 import {
   useSubscriptionPlan,
   useSubscriptionStatus,
-} from "@/app/dashboard/layout";
+} from "@/app/dashboard/contexts";
 import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";

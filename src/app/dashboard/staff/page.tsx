@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useToast } from "@/contexts/ToastContext";
-import { useSidebarToggle } from "../layout";
+import { useSidebarToggle } from "../contexts";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
@@ -16,8 +16,10 @@ export default function StaffPage() {
   const { showToast } = useToast();
   const { gate, checkSubscription } = useSubscriptionGate();
   const { staffList: cachedStaff, loading: staffLoading } = useStaffList();
-  const [staff, setStaff] = useState<ApiStaff[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [localStaff, setLocalStaff] = useState<ApiStaff[] | null>(null);
+  const staff = localStaff ?? cachedStaff;
+  const setStaff = setLocalStaff;
+  const loading = localStaff === null && staffLoading;
   const [editModal, setEditModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -36,11 +38,6 @@ export default function StaffPage() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setStaff(cachedStaff);
-    setLoading(staffLoading);
-  }, [cachedStaff, staffLoading]);
 
 
   function openAdd() {
@@ -82,9 +79,9 @@ export default function StaffPage() {
       if (res.ok) {
         const data = body.data;
         if (editingId) {
-          setStaff((prev) => prev.map((x) => (x.id === editingId ? { ...x, ...data } : x)));
+          setStaff((prev) => (prev ?? cachedStaff).map((x) => (x.id === editingId ? { ...x, ...data } : x)));
         } else {
-          setStaff((prev) => [...prev, data]);
+          setStaff((prev) => [...(prev ?? cachedStaff), data]);
         }
         invalidateStaffCache();
         showToast(editingId ? `${name} updated!` : `${name} added!`);
@@ -106,7 +103,7 @@ export default function StaffPage() {
     try {
       const res = await apiFetch(`/api/staff/${id}`, { method: "DELETE" });
       if (res.ok) {
-        setStaff((prev) => prev.filter((x) => x.id !== id));
+        setStaff((prev) => (prev ?? cachedStaff).filter((x) => x.id !== id));
         invalidateStaffCache();
         showToast(`${s.name} removed`);
       }

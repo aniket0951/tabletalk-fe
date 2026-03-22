@@ -8,16 +8,6 @@ async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
   const search = req.nextUrl.search || "";
   const url = `${BACKEND_URL}${backendPath}${search}`;
 
-  const headers = new Headers();
-
-  // Forward auth header
-  const auth = req.headers.get("authorization");
-  if (auth) headers.set("authorization", auth);
-
-  // Forward content-type
-  const contentType = req.headers.get("content-type");
-  if (contentType) headers.set("content-type", contentType);
-
   const body =
     req.method !== "GET" && req.method !== "HEAD"
       ? await req.text()
@@ -26,7 +16,7 @@ async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
   try {
     const res = await fetch(url, {
       method: req.method,
-      headers,
+      headers: req.headers,
       body,
     });
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
-import { useSidebarToggle } from "../../layout";
+import { useSidebarToggle } from "../../contexts";
 import { apiFetch } from "@/lib/api";
 import { getCached, setCache, TTL } from "@/lib/cache";
 import type { ApiCampaign } from "@/types";
@@ -32,12 +32,16 @@ export default function CampaignHistoryPage() {
   const [detailCampaign, setDetailCampaign] = useState<ApiCampaign | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  const fetchCampaigns = useCallback(() => {
+  useEffect(() => {
     // Try cache first (set by main campaigns page)
     const cached = getCached<{ campaigns: ApiCampaign[] }>("campaigns_history");
     if (cached) {
-      setCampaigns((cached.campaigns || []).filter((c) => c.status !== "DRAFT"));
-      setLoading(false);
+      const filtered = (cached.campaigns || []).filter((c) => c.status !== "DRAFT");
+      // Defer setState to avoid synchronous setState in effect body
+      Promise.resolve().then(() => {
+        setCampaigns(filtered);
+        setLoading(false);
+      });
       return;
     }
     // Fallback to API only if no cache
@@ -51,8 +55,6 @@ export default function CampaignHistoryPage() {
       })
       .catch(() => setLoading(false));
   }, []);
-
-  useEffect(() => { fetchCampaigns(); }, [fetchCampaigns]);
 
   async function openDetail(id: string) {
     setDetailLoading(true);
