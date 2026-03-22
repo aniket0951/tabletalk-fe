@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { io, Socket } from "socket.io-client";
 
 interface SocketContextType {
@@ -18,37 +18,38 @@ export function useSocket() {
 }
 
 export function SocketProvider({ children }: { children: ReactNode }) {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  useEffect(() => {
-    // Send auth token in handshake if available (owner or staff)
-    const token = typeof window !== "undefined"
-      ? localStorage.getItem("token") || (() => { try { return JSON.parse(localStorage.getItem("staff") || "{}").token; } catch { return undefined; } })()
-      : undefined;
+  if (!socketRef.current && typeof window !== "undefined") {
+    const token =
+      localStorage.getItem("token") ||
+      (() => { try { return JSON.parse(localStorage.getItem("staff") || "{}").token; } catch { return undefined; } })();
 
-    const s = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3004", {
+    socketRef.current = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3004", {
       transports: ["websocket", "polling"],
       auth: token ? { token } : {},
     });
+  }
 
-    s.on("connect", () => {
-      setIsConnected(true);
-    });
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s) return;
+
+    s.on("connect", () => setIsConnected(true));
     s.on("disconnect", () => setIsConnected(false));
     s.on("connect_error", (err) => {
       console.warn("[socket] connection error:", err.message);
     });
 
-    setSocket(s);
-
     return () => {
       s.disconnect();
+      socketRef.current = null;
     };
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
+    <SocketContext.Provider value={{ socket: socketRef.current, isConnected }}>
       {children}
     </SocketContext.Provider>
   );
