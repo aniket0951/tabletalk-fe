@@ -173,6 +173,7 @@ export interface ApiOrder {
   settledAt: string | null;
   items: ApiOrderItem[];
   table: ApiDiningTable;
+  restaurant?: { id: string; name: string; phone?: string };
 }
 
 export interface ApiDiningTable {

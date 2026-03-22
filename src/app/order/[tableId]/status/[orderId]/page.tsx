@@ -33,7 +33,7 @@ function getStepTimestamp(order: ApiOrder, step: OrderStatus): string | null {
   return map[step];
 }
 
-async function downloadReceipt(order: ApiOrder & { restaurant?: { name: string; phone?: string } }) {
+async function downloadReceipt(order: ApiOrder) {
   const { jsPDF } = await import("jspdf");
 
   const doc = new jsPDF({ unit: "mm", format: [80, 200] }); // receipt-width PDF
@@ -405,7 +405,7 @@ export default function OrderStatusPage({
         <button
           onClick={async () => {
             setDownloading(true);
-            await downloadReceipt(order as ApiOrder & { restaurant?: { name: string; phone?: string } });
+            await downloadReceipt(order);
             setDownloading(false);
           }}
           disabled={downloading}
