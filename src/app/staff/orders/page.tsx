@@ -65,16 +65,29 @@ export default function StaffOrdersPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyFilter, setHistoryFilter] = useState("ALL");
   const [dateFilter, setDateFilter] = useState("today");
+  const [activeDateFilter, setActiveDateFilter] = useState("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [activeCustomFrom, setActiveCustomFrom] = useState("");
+  const [activeCustomTo, setActiveCustomTo] = useState("");
   const [historyFetched, setHistoryFetched] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch("/api/staff/orders")
+  function fetchActiveOrders(filter: string) {
+    setLoading(true);
+    const { from, to } = getActiveDateRange(filter);
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    apiFetch(`/api/staff/orders?${params}`)
       .then((r) => r.json())
-      .then((data) => { setOrders(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then((data) => { setOrders(Array.isArray(data) ? data : []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    fetchActiveOrders(activeDateFilter);
   }, []);
 
   const getMyStaffId = useCallback(() => {
@@ -130,7 +143,7 @@ export default function StaffOrdersPage() {
   useSocketEvent("order:updated", handleOrderUpdate);
   useSocketEvent("order:created", handleOrderCreate);
 
-  function getDateRange(filter: string): { from: string; to: string } {
+  function buildDateRange(filter: string, cFrom: string, cTo: string): { from: string; to: string } {
     const now = new Date();
     const fmt = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -156,9 +169,17 @@ export default function StaffOrdersPage() {
       return { from: fmt(s), to: fmt(e) };
     }
     if (filter === "custom") {
-      return { from: customFrom, to: customTo };
+      return { from: cFrom, to: cTo };
     }
     return { from: todayStr, to: todayStr };
+  }
+
+  function getDateRange(filter: string) {
+    return buildDateRange(filter, customFrom, customTo);
+  }
+
+  function getActiveDateRange(filter: string) {
+    return buildDateRange(filter, activeCustomFrom, activeCustomTo);
   }
 
   function fetchHistory(filter: string) {
@@ -185,6 +206,13 @@ export default function StaffOrdersPage() {
     setDateFilter(filter);
     if (filter !== "custom") {
       fetchHistory(filter);
+    }
+  }
+
+  function handleActiveDateFilterChange(filter: string) {
+    setActiveDateFilter(filter);
+    if (filter !== "custom") {
+      fetchActiveOrders(filter);
     }
   }
 
@@ -290,53 +318,77 @@ export default function StaffOrdersPage() {
         </div>
       )}
 
-      {/* Date filter pills — History tab only */}
-      {activeTab === "history" && (
-        <div className="mb-4 flex flex-wrap items-center gap-[7px]">
-          {[
-            { label: "Today", value: "today" },
-            { label: "Yesterday", value: "yesterday" },
-            { label: "Last 7 Days", value: "7days" },
-            { label: "Last 30 Days", value: "30days" },
-            { label: "Custom", value: "custom" },
-          ].map((tab) => (
+      {/* Date filter pills */}
+      <div className="mb-4 flex flex-wrap items-center gap-[7px]">
+        {[
+          { label: "Today", value: "today" },
+          { label: "Yesterday", value: "yesterday" },
+          { label: "Last 7 Days", value: "7days" },
+          { label: "Last 30 Days", value: "30days" },
+          { label: "Custom", value: "custom" },
+        ].map((tab) => {
+          const current = activeTab === "active" ? activeDateFilter : dateFilter;
+          return (
             <button
               key={tab.value}
-              onClick={() => handleDateFilterChange(tab.value)}
+              onClick={() => activeTab === "active" ? handleActiveDateFilterChange(tab.value) : handleDateFilterChange(tab.value)}
               className={`shrink-0 rounded-2xl border px-3 py-[5px] text-[11px] font-semibold transition-all ${
-                dateFilter === tab.value
+                current === tab.value
                   ? "border-text bg-text text-white"
                   : "border-border bg-surface text-text2 hover:bg-surface2"
               }`}
             >
               {tab.label}
             </button>
-          ))}
-          {dateFilter === "custom" && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                className="rounded-[7px] border border-border bg-surface px-2 py-1 text-xs text-text outline-none focus:border-accent"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-              />
-              <span className="text-xs text-text3">to</span>
-              <input
-                type="date"
-                className="rounded-[7px] border border-border bg-surface px-2 py-1 text-xs text-text outline-none focus:border-accent"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-              />
-              <button
-                onClick={() => { if (customFrom && customTo) fetchHistory("custom"); }}
-                className="rounded-lg bg-accent px-3 py-[5px] text-[11px] font-semibold text-white hover:bg-accent2"
-              >
-                Apply
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+          );
+        })}
+        {activeTab === "active" && activeDateFilter === "custom" && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              className="rounded-[7px] border border-border bg-surface px-2 py-1 text-xs text-text outline-none focus:border-accent"
+              value={activeCustomFrom}
+              onChange={(e) => setActiveCustomFrom(e.target.value)}
+            />
+            <span className="text-xs text-text3">to</span>
+            <input
+              type="date"
+              className="rounded-[7px] border border-border bg-surface px-2 py-1 text-xs text-text outline-none focus:border-accent"
+              value={activeCustomTo}
+              onChange={(e) => setActiveCustomTo(e.target.value)}
+            />
+            <button
+              onClick={() => { if (activeCustomFrom && activeCustomTo) fetchActiveOrders("custom"); }}
+              className="rounded-lg bg-accent px-3 py-[5px] text-[11px] font-semibold text-white hover:bg-accent2"
+            >
+              Apply
+            </button>
+          </div>
+        )}
+        {activeTab === "history" && dateFilter === "custom" && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              className="rounded-[7px] border border-border bg-surface px-2 py-1 text-xs text-text outline-none focus:border-accent"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+            />
+            <span className="text-xs text-text3">to</span>
+            <input
+              type="date"
+              className="rounded-[7px] border border-border bg-surface px-2 py-1 text-xs text-text outline-none focus:border-accent"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+            />
+            <button
+              onClick={() => { if (customFrom && customTo) fetchHistory("custom"); }}
+              className="rounded-lg bg-accent px-3 py-[5px] text-[11px] font-semibold text-white hover:bg-accent2"
+            >
+              Apply
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Status filter tabs */}
       <div className="mb-4 flex gap-[6px] overflow-x-auto pb-1">
