@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { OfflineBanner } from "@/components/shared/OfflineBanner";
 
 const dmSans = DM_Sans({
   variable: "--font-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${dmSans.variable} ${fraunces.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <ToastProvider>
+          <OfflineBanner />
           {children}
         </ToastProvider>
       </body>
