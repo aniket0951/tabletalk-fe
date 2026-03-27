@@ -24,7 +24,6 @@ export default function CartPage({
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [specialNote, setSpecialNote] = useState("");
-  const [promoCode, setPromoCode] = useState("");
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [existingOrder, setExistingOrder] = useState<ApiOrder | null>(null);
@@ -72,7 +71,6 @@ export default function CartPage({
             customerPhone: phone.trim(),
             customerName: name.trim(),
             specialNote: specialNote.trim(),
-            promoCode: promoCode.trim() || undefined,
             items: items.map((i) => ({
               menuItemId: i.menuItemId,
               quantity: i.quantity,
@@ -228,20 +226,6 @@ export default function CartPage({
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
             />
           </div>
-        </div>
-      )}
-
-      {/* Promo Code — only for new orders */}
-      {!addToOrderId && (
-        <div className="mt-4">
-          <label className="mb-1 block text-xs font-semibold text-text2">Promo Code</label>
-          <input
-            type="text"
-            value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-            placeholder="Enter promo code (optional)"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm uppercase outline-none placeholder:text-text3 placeholder:normal-case focus:border-accent"
-          />
         </div>
       )}
 

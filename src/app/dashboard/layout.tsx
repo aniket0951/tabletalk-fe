@@ -83,14 +83,13 @@ function SidebarWithOrderCount({ restName, plan, subscriptionStatus, daysRemaini
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const [restName, setRestName] = useState("");
   const [restaurantData, setRestaurantData] = useState<RestaurantData | null>(null);
-  const [plan, setPlan] = useState<string | null>("GROWTH");
+  const noSub = typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY.DEMO_NO_SUB) === "true";
+  const [plan, setPlan] = useState<string | null>(noSub ? null : "GROWTH");
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const noSub = localStorage.getItem(STORAGE_KEY.DEMO_NO_SUB) === "true";
-
     // Cache restaurant data for 1 day
     cachedFetch<RestaurantData>("restaurant", () => apiFetch("/api/restaurant"), TTL.ONE_DAY)
       .then((data) => {
@@ -106,15 +105,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       () => apiFetch("/api/billing/subscription"),
       TTL.ONE_HOUR,
     ).then((data) => {
-      if (noSub) { setPlan(null); return; }
-      if (data && data.plan) setPlan(data.plan);
+      if (data && data.plan) setPlan(noSub ? null : data.plan);
       if (data?.status) setSubscriptionStatus(data.status);
       if (data?.daysRemaining != null) setDaysRemaining(data.daysRemaining);
     });
   }, []);
 
   return (
-    <div className="flex min-h-screen" suppressHydrationWarning>
+    <div className="flex min-h-screen">
       <SidebarWithOrderCount
         restName={restName}
         plan={plan}

@@ -9,7 +9,6 @@ const mainNav = [
   { icon: "📋", label: "Orders", href: "/dashboard/orders" },
   { icon: "👥", label: "Customers", href: "/dashboard/customers" },
   { icon: "📣", label: "Campaigns", href: "/dashboard/campaigns" },
-  { icon: "🏷", label: "Offers", href: "/dashboard/offers" },
 ];
 
 const setupNav = [
