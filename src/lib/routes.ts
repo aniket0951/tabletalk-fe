@@ -7,6 +7,7 @@ export const ROUTES = {
   STAFF_ORDERS: "/staff/orders",
   ONBOARDING_STEP1: "/onboarding/step1",
   ONBOARDING_STEP2: "/onboarding/step2",
+  OFFERS: "/dashboard/offers",
   CAMPAIGNS: "/dashboard/campaigns",
   CAMPAIGNS_HISTORY: "/dashboard/campaigns/history",
 } as const;
