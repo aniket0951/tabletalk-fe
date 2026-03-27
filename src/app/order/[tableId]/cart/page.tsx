@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
+import { useTableInfo } from "../layout";
 import { publicFetch } from "@/lib/api";
 import { orderStatusRoute } from "@/lib/routes";
-import type { ApiOrder } from "@/types";
+import type { ApiOrder, PublicOffer } from "@/types";
 
 export default function CartPage({
   params,
@@ -18,6 +19,7 @@ export default function CartPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const addToOrderId = searchParams.get("addTo");
+  const tableInfo = useTableInfo();
   const { items, addItem, removeItem, clearCart, subtotal } = useCart();
   const { showToast } = useToast();
 
@@ -27,6 +29,9 @@ export default function CartPage({
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [existingOrder, setExistingOrder] = useState<ApiOrder | null>(null);
+  const [offers, setOffers] = useState<PublicOffer[]>([]);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoInput, setPromoInput] = useState("");
 
   // Fetch existing order details when in add-to mode (to get phone)
   useEffect(() => {
@@ -37,8 +42,60 @@ export default function CartPage({
       .catch(() => {});
   }, [addToOrderId]);
 
+  // Fetch active offers for this restaurant
+  useEffect(() => {
+    if (!tableInfo?.restaurant.id) return;
+    publicFetch(`/public/offers/${tableInfo.restaurant.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((body) => { if (body?.data) setOffers(body.data); })
+      .catch(() => {});
+  }, [tableInfo?.restaurant.id]);
+
+  // Calculate best applicable discount client-side for display
+  const discount = (() => {
+    if (offers.length === 0 || subtotal === 0) return { amount: 0, label: "" };
+
+    const now = new Date();
+    const eligible = offers.filter((o) => {
+      if (o.startDate && now < new Date(o.startDate)) return false;
+      if (o.endDate && now > new Date(o.endDate)) return false;
+      if (o.daysOfWeek.length > 0 && !o.daysOfWeek.includes(now.getDay())) return false;
+      if (o.requiresCode && (!promoCode || promoCode.toUpperCase() !== promoCode)) return false;
+      return true;
+    });
+
+    // Best bill discount
+    const billOffers = eligible.filter((o) => o.type === "BILL_DISCOUNT" && !o.requiresCode || (o.requiresCode && promoCode));
+    let bestDisc = 0;
+    let bestLabel = "";
+
+    for (const o of billOffers) {
+      if (o.requiresCode && !promoCode) continue;
+      if (o.minOrderAmount != null && subtotal < o.minOrderAmount) continue;
+
+      let d = o.discountType === "PERCENTAGE"
+        ? Math.round(subtotal * (o.discountValue / 100) * 100) / 100
+        : o.discountValue;
+
+      if (o.discountType === "PERCENTAGE" && o.minOrderAmount == null) {
+        // no cap needed beyond maxDiscount
+      }
+      if (d > subtotal) d = subtotal;
+
+      if (d > bestDisc) {
+        bestDisc = d;
+        bestLabel = o.discountType === "PERCENTAGE"
+          ? `${o.discountValue}% off on bill`
+          : `₹${o.discountValue} off on bill`;
+        if (o.requiresCode) bestLabel += ` (${promoCode})`;
+      }
+    }
+
+    return { amount: Math.round(bestDisc * 100) / 100, label: bestLabel };
+  })();
+
   const tax = Math.round(subtotal * 0.05 * 100) / 100;
-  const total = Math.round((subtotal + tax) * 100) / 100;
+  const total = Math.round((subtotal - discount.amount + tax) * 100) / 100;
 
   async function placeOrder() {
     if (!addToOrderId && !phone.trim()) {
@@ -71,6 +128,7 @@ export default function CartPage({
             customerPhone: phone.trim(),
             customerName: name.trim(),
             specialNote: specialNote.trim(),
+            promoCode: promoCode || undefined,
             items: items.map((i) => ({
               menuItemId: i.menuItemId,
               quantity: i.quantity,
@@ -229,12 +287,62 @@ export default function CartPage({
         </div>
       )}
 
+      {/* Promo Code */}
+      {!addToOrderId && offers.some((o) => o.requiresCode) && (
+        <div className="mt-4">
+          <label className="mb-1 block text-xs font-semibold text-text2">Promo Code</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+              placeholder="Enter promo code"
+              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm uppercase outline-none placeholder:text-text3 placeholder:normal-case focus:border-accent"
+            />
+            <button
+              onClick={() => setPromoCode(promoInput.trim())}
+              className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent2"
+            >
+              Apply
+            </button>
+          </div>
+          {promoCode && (
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-green-mid">
+              <span>Code "{promoCode}" applied</span>
+              <button onClick={() => { setPromoCode(""); setPromoInput(""); }} className="text-red underline">Remove</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Available offers banner */}
+      {offers.length > 0 && discount.amount === 0 && (
+        <div className="mt-4 rounded-[10px] border border-accent-border bg-accent-bg px-3 py-2">
+          <div className="text-[11px] font-semibold text-accent">Available Offers</div>
+          <div className="mt-1 space-y-0.5">
+            {offers.slice(0, 3).map((o) => (
+              <div key={o.id} className="text-[11px] text-text2">
+                🏷 {o.name} — {o.discountType === "PERCENTAGE" ? `${o.discountValue}% off` : `₹${o.discountValue} off`}
+                {o.minOrderAmount ? ` (min ₹${o.minOrderAmount})` : ""}
+                {o.requiresCode ? " · Code required" : ""}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="mt-4 rounded-[10px] border border-border bg-surface p-3">
         <div className="flex justify-between text-sm">
           <span className="text-text2">Subtotal</span>
           <span>₹{subtotal.toFixed(2)}</span>
         </div>
+        {discount.amount > 0 && (
+          <div className="mt-1 flex justify-between text-sm">
+            <span className="text-green-mid">{discount.label}</span>
+            <span className="text-green-mid">−₹{discount.amount.toFixed(2)}</span>
+          </div>
+        )}
         <div className="mt-1 flex justify-between text-sm">
           <span className="text-text2">GST (5%)</span>
           <span>₹{tax.toFixed(2)}</span>

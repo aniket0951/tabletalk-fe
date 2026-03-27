@@ -163,6 +163,7 @@ export interface ApiOrder {
   status: OrderStatus;
   specialNote: string;
   subtotal: number;
+  discount: number;
   tax: number;
   total: number;
   placedAt: string;

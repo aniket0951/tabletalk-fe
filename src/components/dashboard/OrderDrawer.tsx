@@ -315,6 +315,12 @@ export default function OrderDrawer({
                     <span className="text-text2">Subtotal</span>
                     <span className="font-mono">₹{order.subtotal}</span>
                   </div>
+                  {order.discount > 0 && (
+                    <div className="mb-1.5 flex justify-between text-[13px]">
+                      <span className="text-green-mid">Discount</span>
+                      <span className="font-mono text-green-mid">−₹{order.discount}</span>
+                    </div>
+                  )}
                   <div className="mb-1.5 flex justify-between text-[13px]">
                     <span className="text-text2">GST (5%)</span>
                     <span className="font-mono">₹{order.tax}</span>
