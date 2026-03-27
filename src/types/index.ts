@@ -271,6 +271,45 @@ export interface CampaignCheckoutResponse {
   email: string;
 }
 
+export type OfferType = "ITEM_DISCOUNT" | "BILL_DISCOUNT";
+export type DiscountType = "PERCENTAGE" | "FLAT";
+
+export interface ApiOffer {
+  id: string;
+  restaurantId: string;
+  name: string;
+  type: OfferType;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderAmount: number | null;
+  maxDiscount: number | null;
+  menuItemIds: string[];
+  categoryIds: string[];
+  daysOfWeek: number[];
+  startDate: string | null;
+  endDate: string | null;
+  active: boolean;
+  promoCode: string | null;
+  usageLimit: number | null;
+  usageCount: number;
+  createdAt: string;
+}
+
+export interface PublicOffer {
+  id: string;
+  name: string;
+  type: OfferType;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderAmount: number | null;
+  menuItemIds: string[];
+  categoryIds: string[];
+  daysOfWeek: number[];
+  startDate: string | null;
+  endDate: string | null;
+  requiresCode: boolean;
+}
+
 export interface DashboardStats {
   revenue: number;
   orderCount: number;
