@@ -270,7 +270,7 @@ export default function OffersPage() {
                       />
                     </button>
                     {togglingId === offer.id && (
-                      <div className="text-[10px] text-text3">Loading...</div>
+                      <div className="text-[10px] text-text3">loading...</div>
                     )}{" "}
                   </div>
                 </div>
