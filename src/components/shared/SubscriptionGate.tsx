@@ -9,22 +9,23 @@ import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import type { CheckoutResponse, PlanType } from "@/types";
+import { PlanName, RequestType, SubscriptionStatus } from "@/types/constants";
 
 const plans = [
   {
-    key: "STARTER" as PlanType,
-    name: "Starter",
+    key: PlanName.Starter as PlanType,
+    name: PlanName.Starter,
     price: "₹999/mo",
     desc: "Up to 500 orders · 1 mode",
   },
   {
-    key: "GROWTH" as PlanType,
-    name: "Growth",
+    key: PlanName.Growth as PlanType,
+    name: PlanName.Growth,
     price: "₹1,499/mo",
     desc: "Unlimited orders · Both modes",
   },
   {
-    key: "MULTI" as PlanType,
+    key: PlanName.Multi as PlanType,
     name: "Multi-Branch",
     price: "₹3,999/mo",
     desc: "Up to 5 branches · All features",
@@ -46,8 +47,8 @@ export function useSubscriptionGate(): SubscriptionGateResult {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const hasActiveSub = subscriptionPlan && subscriptionStatus !== "EXPIRED";
-
+  const hasActiveSub =
+    subscriptionPlan && subscriptionStatus !== SubscriptionStatus.Expired;
   const checkSubscription = useCallback(
     (action: string, onAllowed: () => void) => {
       if (hasActiveSub) {
@@ -67,12 +68,12 @@ export function useSubscriptionGate(): SubscriptionGateResult {
     // If no subscription at all, start a free trial
     if (
       !subscriptionStatus ||
-      subscriptionStatus === "EXPIRED" ||
-      subscriptionStatus === "CANCELLED"
+      subscriptionStatus === SubscriptionStatus.Expired ||
+      subscriptionStatus === SubscriptionStatus.Cancelled
     ) {
       try {
         const trialRes = await apiFetch("/api/billing/subscription", {
-          method: "POST",
+          method: RequestType.Post,
           body: JSON.stringify({ plan: selected }),
         });
 
@@ -99,7 +100,7 @@ export function useSubscriptionGate(): SubscriptionGateResult {
       await loadRazorpay();
 
       const res = await apiFetch("/api/billing/checkout", {
-        method: "POST",
+        method: RequestType.Post,
         body: JSON.stringify({ plan: selected }),
       });
 
@@ -122,7 +123,7 @@ export function useSubscriptionGate(): SubscriptionGateResult {
         email: checkout.email,
         onSuccess: async (response) => {
           const verifyRes = await apiFetch("/api/billing/verify", {
-            method: "POST",
+            method: RequestType.Post,
             body: JSON.stringify(response),
           });
 

@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
 import type { CreateRestaurantReq } from "@/types";
+import { RequestType } from "@/types/constants";
 
 export default function OnboardingStep1() {
   const router = useRouter();
@@ -36,20 +37,25 @@ export default function OnboardingStep1() {
 
     try {
       const res = await apiFetch("/api/restaurant", {
-        method: "POST",
+        method: RequestType.Post,
         body: JSON.stringify(body),
       });
 
       if (!res.ok) {
         const errBody = await res.json();
-        setError(errBody.debug_message || errBody.message || "Failed to create restaurant");
+        setError(
+          errBody.debug_message ||
+            errBody.message ||
+            "Failed to create restaurant",
+        );
         setLoading(false);
         return;
       }
 
       const resBody = await res.json();
       // Save new token with restaurantId
-      if (resBody.data.token) localStorage.setItem(STORAGE_KEY.TOKEN, resBody.data.token);
+      if (resBody.data.token)
+        localStorage.setItem(STORAGE_KEY.TOKEN, resBody.data.token);
 
       router.push(ROUTES.ONBOARDING_STEP2);
     } catch (err) {
@@ -67,8 +73,12 @@ export default function OnboardingStep1() {
             <div className="h-[3px] flex-1 rounded-sm bg-accent/50" />
             <div className="h-[3px] flex-1 rounded-sm bg-border" />
           </div>
-          <div className="mb-2 font-mono text-[11px] tracking-[0.06em] text-text3">STEP 1 OF 3</div>
-          <div className="mb-1 text-xl font-bold tracking-[-0.02em]">Tell us about your restaurant</div>
+          <div className="mb-2 font-mono text-[11px] tracking-[0.06em] text-text3">
+            STEP 1 OF 3
+          </div>
+          <div className="mb-1 text-xl font-bold tracking-[-0.02em]">
+            Tell us about your restaurant
+          </div>
           <div className="text-[13px] leading-[1.6] text-text2">
             This helps us personalise the WhatsApp bot for your customers.
           </div>
@@ -81,7 +91,9 @@ export default function OnboardingStep1() {
             </div>
           )}
           <div className="mb-4">
-            <label className="mb-[5px] block text-xs font-semibold text-text2">Restaurant Name *</label>
+            <label className="mb-[5px] block text-xs font-semibold text-text2">
+              Restaurant Name *
+            </label>
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
               placeholder="e.g. Saffron House"
@@ -90,17 +102,23 @@ export default function OnboardingStep1() {
             />
           </div>
           <div className="mb-4">
-            <label className="mb-[5px] block text-xs font-semibold text-text2">Your WhatsApp Number *</label>
+            <label className="mb-[5px] block text-xs font-semibold text-text2">
+              Your WhatsApp Number *
+            </label>
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
               placeholder="+91 98765 43210"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
-            <div className="mt-1 text-[11px] text-text3">New orders will be sent here</div>
+            <div className="mt-1 text-[11px] text-text3">
+              New orders will be sent here
+            </div>
           </div>
           <div className="mb-4">
-            <label className="mb-[5px] block text-xs font-semibold text-text2">City</label>
+            <label className="mb-[5px] block text-xs font-semibold text-text2">
+              City
+            </label>
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
               placeholder="e.g. Pune, Maharashtra"
@@ -109,7 +127,9 @@ export default function OnboardingStep1() {
             />
           </div>
           <div>
-            <label className="mb-[5px] block text-xs font-semibold text-text2">Service Mode *</label>
+            <label className="mb-[5px] block text-xs font-semibold text-text2">
+              Service Mode *
+            </label>
             <div className="grid grid-cols-2 gap-[10px]">
               <div
                 onClick={() => setMode("dinein")}
@@ -121,7 +141,9 @@ export default function OnboardingStep1() {
               >
                 <div className="mb-1.5 text-[22px]">🪑</div>
                 <div className="text-[13px] font-bold">Dine-In</div>
-                <div className="mt-0.5 text-[11px] text-text2">Tables + QR codes</div>
+                <div className="mt-0.5 text-[11px] text-text2">
+                  Tables + QR codes
+                </div>
               </div>
               <div
                 onClick={() => setMode("walkin")}
@@ -133,7 +155,9 @@ export default function OnboardingStep1() {
               >
                 <div className="mb-1.5 text-[22px]">🎫</div>
                 <div className="text-[13px] font-bold">Walk-In</div>
-                <div className="mt-0.5 text-[11px] text-text2">Token system</div>
+                <div className="mt-0.5 text-[11px] text-text2">
+                  Token system
+                </div>
               </div>
             </div>
           </div>

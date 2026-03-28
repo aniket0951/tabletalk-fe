@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
+import { PlanName } from "@/types/constants";
 
 const plans = [
   {
-    name: "Starter",
+    name: PlanName.Starter,
     price: "₹999",
     desc: "For small restaurants getting started with WhatsApp ordering",
     features: [
@@ -17,7 +18,7 @@ const plans = [
     popular: false,
   },
   {
-    name: "Growth",
+    name: PlanName.Growth,
     price: "₹1,499",
     desc: "For busy restaurants that need analytics and unlimited orders",
     features: [
@@ -32,7 +33,7 @@ const plans = [
     popular: true,
   },
   {
-    name: "Multi",
+    name: PlanName.Multi,
     price: "₹3,999",
     desc: "For chains and multi-branch restaurant groups",
     features: [

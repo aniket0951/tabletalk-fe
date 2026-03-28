@@ -11,6 +11,7 @@ import { SOCKET_EVENT } from "@/lib/events";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
 import type { ApiDiningTable } from "@/types";
+import { RequestType, TableStatus } from "@/types/constants";
 
 const capacityOptions = [2, 4, 6, 8, 10, 12];
 
@@ -69,9 +70,11 @@ export default function TablesPage() {
   }, [qrTable]);
 
   const occupied = tables.filter(
-    (t) => t.active && t.status === "OCCUPIED",
+    (t) => t.active && t.status === TableStatus.Occupid,
   ).length;
-  const free = tables.filter((t) => t.active && t.status === "FREE").length;
+  const free = tables.filter(
+    (t) => t.active && t.status === TableStatus.Free,
+  ).length;
 
   function openAddTable() {
     setEditingId(null);
@@ -103,7 +106,7 @@ export default function TablesPage() {
     try {
       if (editingId) {
         const res = await apiFetch(`/api/tables/${editingId}`, {
-          method: "PATCH",
+          method: RequestType.Patch,
           body: JSON.stringify({
             label: tblLabel,
             capacity: tblCap,
@@ -120,7 +123,7 @@ export default function TablesPage() {
         }
       } else {
         const res = await apiFetch("/api/tables", {
-          method: "POST",
+          method: RequestType.Post,
           body: JSON.stringify({ label: tblLabel, capacity: tblCap }),
         });
         if (res.ok) {
@@ -140,7 +143,7 @@ export default function TablesPage() {
   async function deleteTable(id: string) {
     const t = tables.find((x) => x.id === id);
     if (!t) return;
-    if (t.status === "OCCUPIED") {
+    if (t.status === TableStatus.Occupid) {
       alert(`${t.label} is currently occupied. Cannot delete.`);
       return;
     }
@@ -148,7 +151,9 @@ export default function TablesPage() {
       return;
     setDeletingId(id);
     try {
-      const res = await apiFetch(`/api/tables/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/tables/${id}`, {
+        method: RequestType.Delete,
+      });
       if (res.ok) {
         setTables((prev) => prev.filter((x) => x.id !== id));
         showToast(`🗑 ${t.label} removed.`);
@@ -217,7 +222,7 @@ export default function TablesPage() {
             {tables.map((t) => (
               <div
                 key={t.id}
-                className={`relative rounded-xl border-[1.5px] p-4 transition-all hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(0,0,0,.08)] ${!t.active ? "border-dashed border-border opacity-50" : t.status === "OCCUPIED" ? "border-accent-border bg-accent-bg" : "border-border bg-surface"}`}
+                className={`relative rounded-xl border-[1.5px] p-4 transition-all hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(0,0,0,.08)] ${!t.active ? "border-dashed border-border opacity-50" : t.status === TableStatus.Occupid ? "border-accent-border bg-accent-bg" : "border-border bg-surface"}`}
               >
                 <div className="font-serif text-[32px] font-black leading-none tracking-[-0.03em]">
                   {t.tableNumber}
@@ -226,11 +231,11 @@ export default function TablesPage() {
                   Table · {t.capacity} seats
                 </div>
                 <div
-                  className={`mt-2 inline-flex items-center gap-1 rounded-[5px] px-2 py-[2px] font-mono text-[10px] font-bold ${!t.active ? "bg-surface2 text-text3" : t.status === "OCCUPIED" ? "bg-new-bg text-accent" : "bg-green-bg text-green-mid"}`}
+                  className={`mt-2 inline-flex items-center gap-1 rounded-[5px] px-2 py-[2px] font-mono text-[10px] font-bold ${!t.active ? "bg-surface2 text-text3" : t.status === TableStatus.Occupid ? "bg-new-bg text-accent" : "bg-green-bg text-green-mid"}`}
                 >
                   {!t.active
                     ? "INACTIVE"
-                    : t.status === "OCCUPIED"
+                    : t.status === TableStatus.Occupid
                       ? "● OCCUPIED"
                       : "● FREE"}
                 </div>

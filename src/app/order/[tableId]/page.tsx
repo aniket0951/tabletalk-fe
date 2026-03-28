@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, use } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { publicFetch } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
 import { useTableInfo } from "./layout";

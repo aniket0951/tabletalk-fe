@@ -7,7 +7,15 @@ export interface CreateRestaurantReq {
 
 export type ServiceMode = "DINE_IN" | "WALK_IN";
 export type PlanType = "STARTER" | "GROWTH" | "MULTI";
-export type SubscriptionStatus = "TRIAL" | "ACTIVE" | "EXPIRED" | "PENDING" | "HALTED" | "CANCELLED" | "COMPLETED" | "PAUSED";
+export type SubscriptionStatus =
+  | "TRIAL"
+  | "ACTIVE"
+  | "EXPIRED"
+  | "PENDING"
+  | "HALTED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "PAUSED";
 export type MenuItemType = "VEG" | "NON_VEG";
 export type TableStatus = "FREE" | "OCCUPIED";
 export type OrderStatus = "NEW" | "COOKING" | "READY" | "BILLED" | "SETTLED";
@@ -235,7 +243,13 @@ export interface PublicTableInfo {
 }
 
 export type CampaignType = "DISCOUNT" | "NEW_DISH" | "FESTIVAL" | "CUSTOM";
-export type CampaignStatus = "DRAFT" | "SCHEDULED" | "PAYING" | "SENDING" | "COMPLETED" | "FAILED";
+export type CampaignStatus =
+  | "DRAFT"
+  | "SCHEDULED"
+  | "PAYING"
+  | "SENDING"
+  | "COMPLETED"
+  | "FAILED";
 
 export interface ApiCampaign {
   id: string;

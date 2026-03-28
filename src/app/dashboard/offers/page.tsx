@@ -8,6 +8,7 @@ import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
 import type { ApiOffer, OfferType, DiscountType } from "@/types";
+import { RequestType } from "@/types/constants";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -22,8 +23,13 @@ function scheduleLabel(offer: ApiOffer) {
     parts.push(offer.daysOfWeek.map((d) => DAY_LABELS[d]).join(", "));
   }
   if (offer.startDate || offer.endDate) {
-    const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
-    if (offer.startDate && offer.endDate) parts.push(`${fmt(offer.startDate)} – ${fmt(offer.endDate)}`);
+    const fmt = (d: string) =>
+      new Date(d).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+      });
+    if (offer.startDate && offer.endDate)
+      parts.push(`${fmt(offer.startDate)} – ${fmt(offer.endDate)}`);
     else if (offer.startDate) parts.push(`From ${fmt(offer.startDate)}`);
     else if (offer.endDate) parts.push(`Until ${fmt(offer.endDate)}`);
   }
@@ -56,7 +62,11 @@ export default function OffersPage() {
   const [saving, setSaving] = useState(false);
 
   // Stats modal
-  const [statsModal, setStatsModal] = useState<{ offer: ApiOffer; redemptions: number; totalDiscountGiven: number } | null>(null);
+  const [statsModal, setStatsModal] = useState<{
+    offer: ApiOffer;
+    redemptions: number;
+    totalDiscountGiven: number;
+  } | null>(null);
 
   useEffect(() => {
     apiFetch("/api/offers")
@@ -90,7 +100,9 @@ export default function OffersPage() {
     setType(offer.type);
     setDiscountType(offer.discountType);
     setDiscountValue(String(offer.discountValue));
-    setMinOrderAmount(offer.minOrderAmount != null ? String(offer.minOrderAmount) : "");
+    setMinOrderAmount(
+      offer.minOrderAmount != null ? String(offer.minOrderAmount) : "",
+    );
     setMaxDiscount(offer.maxDiscount != null ? String(offer.maxDiscount) : "");
     setDaysOfWeek(offer.daysOfWeek);
     setStartDate(offer.startDate ? offer.startDate.slice(0, 10) : "");
@@ -123,7 +135,7 @@ export default function OffersPage() {
 
       const url = editingId ? `/api/offers/${editingId}` : "/api/offers";
       const res = await apiFetch(url, {
-        method: editingId ? "PATCH" : "POST",
+        method: editingId ? RequestType.Patch : RequestType.Post,
         body: JSON.stringify(payload),
       });
       const body = await res.json();
@@ -148,13 +160,16 @@ export default function OffersPage() {
 
   async function toggleActive(id: string, currentActive: boolean) {
     setTogglingId(id);
+
     try {
       const res = await apiFetch(`/api/offers/${id}`, {
-        method: "PATCH",
+        method: RequestType.Patch,
         body: JSON.stringify({ active: !currentActive }),
       });
       if (res.ok) {
-        setOffers((prev) => prev.map((o) => (o.id === id ? { ...o, active: !currentActive } : o)));
+        setOffers((prev) =>
+          prev.map((o) => (o.id === id ? { ...o, active: !currentActive } : o)),
+        );
       }
     } catch {
       showToast("Failed to toggle offer");
@@ -167,7 +182,9 @@ export default function OffersPage() {
     if (!offer || !confirm(`Delete "${offer.name}"?`)) return;
     setDeletingId(id);
     try {
-      const res = await apiFetch(`/api/offers/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/offers/${id}`, {
+        method: RequestType.Delete,
+      });
       if (res.ok) {
         setOffers((prev) => prev.filter((o) => o.id !== id));
         showToast("Offer deleted");
@@ -189,7 +206,9 @@ export default function OffersPage() {
   }
 
   function toggleDay(day: number) {
-    setDaysOfWeek((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]);
+    setDaysOfWeek((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    );
   }
 
   const activeCount = offers.filter((o) => o.active).length;
@@ -202,7 +221,9 @@ export default function OffersPage() {
         <div className="mb-[18px] flex flex-wrap items-center justify-between gap-[10px]">
           <div>
             <div className="text-sm font-semibold">Offers & Discounts</div>
-            <div className="mt-0.5 text-xs text-text3">{offers.length} offers · {activeCount} active</div>
+            <div className="mt-0.5 text-xs text-text3">
+              {offers.length} offers · {activeCount} active
+            </div>
           </div>
           <button
             onClick={() => checkSubscription("Create Offer", openCreate)}
@@ -217,7 +238,9 @@ export default function OffersPage() {
         ) : offers.length === 0 ? (
           <div className="py-10 text-center">
             <div className="mb-2 text-2xl">🏷</div>
-            <div className="text-sm text-text3">No offers yet. Create one to attract more customers.</div>
+            <div className="text-sm text-text3">
+              No offers yet. Create one to attract more customers.
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -231,41 +254,68 @@ export default function OffersPage() {
                   <div>
                     <div className="text-[13px] font-bold">{offer.name}</div>
                     <div className="mt-0.5 text-[11px] text-text3">
-                      {offer.type === "ITEM_DISCOUNT" ? "Item discount" : "Bill discount"}
+                      {offer.type === "ITEM_DISCOUNT"
+                        ? "Item discount"
+                        : "Bill discount"}
                     </div>
                   </div>
-                  <button
-                    onClick={() => toggleActive(offer.id, offer.active)}
-                    disabled={togglingId === offer.id}
-                    className={`relative h-[18px] w-8 shrink-0 cursor-pointer rounded-[9px] border-none transition-colors ${togglingId === offer.id ? "opacity-50" : ""} ${offer.active ? "bg-green-mid" : "bg-border2"}`}
-                  >
-                    <div className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,.2)] transition-[left] ${offer.active ? "left-[17px]" : "left-[3px]"}`} />
-                  </button>
+                  <div className="flex flex-col items-end gap-1">
+                    <button
+                      onClick={() => toggleActive(offer.id, offer.active)}
+                      disabled={togglingId === offer.id}
+                      className={`relative h-[18px] w-8 shrink-0 cursor-pointer rounded-[9px] border-none transition-colors ${togglingId === offer.id ? "opacity-50" : ""} ${offer.active ? "bg-green-mid" : "bg-border2"}`}
+                    >
+                      <div
+                        className={`absolute top-[3px] h-3 w-3 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,.2)] transition-[left] ${offer.active ? "left-[17px]" : "left-[3px]"}`}
+                      />
+                    </button>
+                    {togglingId === offer.id && (
+                      <div className="text-[10px] text-text3">Loading...</div>
+                    )}{" "}
+                  </div>
                 </div>
-
                 {/* Badge */}
-                <div className="mb-2 inline-flex items-center gap-1 rounded-[5px] bg-accent-bg px-2 py-[3px] font-mono text-[11px] font-bold text-accent">
+                <div className="mb-2 inline-flex items-center gap-1 rounded-[5px] bg-accent-bg px-2 py-0.75 font-mono text-[11px] font-bold text-accent">
                   {offerBadge(offer)}
-                  {offer.minOrderAmount ? ` (min ₹${offer.minOrderAmount})` : ""}
+                  {offer.minOrderAmount
+                    ? ` (min ₹${offer.minOrderAmount})`
+                    : ""}
                 </div>
 
                 {/* Schedule */}
-                <div className="mb-3 text-[11px] text-text3">{scheduleLabel(offer)}</div>
+                <div className="mb-3 text-[11px] text-text3">
+                  {scheduleLabel(offer)}
+                </div>
 
                 {/* Promo code + usage */}
                 <div className="flex items-center gap-2 text-[10px]">
                   {offer.promoCode && (
-                    <span className="rounded bg-surface2 px-1.5 py-0.5 font-mono font-bold text-text2">{offer.promoCode}</span>
+                    <span className="rounded bg-surface2 px-1.5 py-0.5 font-mono font-bold text-text2">
+                      {offer.promoCode}
+                    </span>
                   )}
                   <span className="text-text3">
-                    {offer.usageCount} used{offer.usageLimit ? ` / ${offer.usageLimit}` : ""}
+                    {offer.usageCount} used
+                    {offer.usageLimit ? ` / ${offer.usageLimit}` : ""}
                   </span>
                 </div>
 
                 {/* Actions */}
-                <div className="mt-3 flex gap-[5px]">
-                  <button onClick={() => openStats(offer)} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2">Stats</button>
-                  <button onClick={() => checkSubscription("Edit Offer", () => openEdit(offer))} className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2">Edit</button>
+                <div className="mt-3 flex gap-1.25">
+                  <button
+                    onClick={() => openStats(offer)}
+                    className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2"
+                  >
+                    Stats
+                  </button>
+                  <button
+                    onClick={() =>
+                      checkSubscription("Edit Offer", () => openEdit(offer))
+                    }
+                    className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2"
+                  >
+                    Edit
+                  </button>
                   <button
                     onClick={() => handleDelete(offer.id)}
                     disabled={deletingId === offer.id}
@@ -282,33 +332,62 @@ export default function OffersPage() {
 
       {/* Create/Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO" onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}>
+        <div
+          className="fixed inset-0 z-500 flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO"
+          onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}
+        >
           <div className="mx-4 flex max-h-[90vh] w-full max-w-[480px] flex-col overflow-hidden rounded-[14px] bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] animate-slideUp sm:mx-0">
             <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
-              <div className="text-sm font-bold">{editingId ? "Edit Offer" : "Create Offer"}</div>
-              <button onClick={() => setModalOpen(false)} className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 hover:bg-red-bg hover:text-red">✕</button>
+              <div className="text-sm font-bold">
+                {editingId ? "Edit Offer" : "Create Offer"}
+              </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 hover:bg-red-bg hover:text-red"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-[18px]">
               {/* Name */}
               <div className="mb-4">
-                <label className="mb-[5px] block text-xs font-semibold text-text2">Offer Name *</label>
-                <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent" placeholder="e.g. Tuesday 20% Off" value={name} onChange={(e) => setName(e.target.value)} />
+                <label className="mb-[5px] block text-xs font-semibold text-text2">
+                  Offer Name *
+                </label>
+                <input
+                  className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent"
+                  placeholder="e.g. Tuesday 20% Off"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </div>
 
               {/* Type */}
               <div className="mb-4">
-                <label className="mb-[5px] block text-xs font-semibold text-text2">Offer Type *</label>
+                <label className="mb-[5px] block text-xs font-semibold text-text2">
+                  Offer Type *
+                </label>
                 <div className="flex gap-[9px]">
-                  <div onClick={() => setType("BILL_DISCOUNT")} className={`flex-1 cursor-pointer rounded-lg border-[1.5px] p-[10px] text-center transition-all ${type === "BILL_DISCOUNT" ? "border-accent bg-accent-bg" : "border-border"}`}>
+                  <div
+                    onClick={() => setType("BILL_DISCOUNT")}
+                    className={`flex-1 cursor-pointer rounded-lg border-[1.5px] p-[10px] text-center transition-all ${type === "BILL_DISCOUNT" ? "border-accent bg-accent-bg" : "border-border"}`}
+                  >
                     <div className="mb-[3px] text-lg">🧾</div>
                     <div className="text-xs font-bold">Bill Discount</div>
-                    <div className="mt-0.5 text-[10px] text-text3">Off total bill</div>
+                    <div className="mt-0.5 text-[10px] text-text3">
+                      Off total bill
+                    </div>
                   </div>
-                  <div onClick={() => setType("ITEM_DISCOUNT")} className={`flex-1 cursor-pointer rounded-lg border-[1.5px] p-[10px] text-center transition-all ${type === "ITEM_DISCOUNT" ? "border-accent bg-accent-bg" : "border-border"}`}>
+                  <div
+                    onClick={() => setType("ITEM_DISCOUNT")}
+                    className={`flex-1 cursor-pointer rounded-lg border-[1.5px] p-[10px] text-center transition-all ${type === "ITEM_DISCOUNT" ? "border-accent bg-accent-bg" : "border-border"}`}
+                  >
                     <div className="mb-[3px] text-lg">🍽</div>
                     <div className="text-xs font-bold">Item Discount</div>
-                    <div className="mt-0.5 text-[10px] text-text3">Off specific items</div>
+                    <div className="mt-0.5 text-[10px] text-text3">
+                      Off specific items
+                    </div>
                   </div>
                 </div>
               </div>
@@ -316,15 +395,37 @@ export default function OffersPage() {
               {/* Discount */}
               <div className="mb-4 flex gap-3">
                 <div className="flex-1">
-                  <label className="mb-[5px] block text-xs font-semibold text-text2">Discount Type</label>
+                  <label className="mb-[5px] block text-xs font-semibold text-text2">
+                    Discount Type
+                  </label>
                   <div className="flex gap-2">
-                    <button onClick={() => setDiscountType("PERCENTAGE")} className={`flex-1 rounded-lg border-[1.5px] py-2 text-xs font-semibold transition-all ${discountType === "PERCENTAGE" ? "border-accent bg-accent-bg text-accent" : "border-border"}`}>%</button>
-                    <button onClick={() => setDiscountType("FLAT")} className={`flex-1 rounded-lg border-[1.5px] py-2 text-xs font-semibold transition-all ${discountType === "FLAT" ? "border-accent bg-accent-bg text-accent" : "border-border"}`}>₹ Flat</button>
+                    <button
+                      onClick={() => setDiscountType("PERCENTAGE")}
+                      className={`flex-1 rounded-lg border-[1.5px] py-2 text-xs font-semibold transition-all ${discountType === "PERCENTAGE" ? "border-accent bg-accent-bg text-accent" : "border-border"}`}
+                    >
+                      %
+                    </button>
+                    <button
+                      onClick={() => setDiscountType("FLAT")}
+                      className={`flex-1 rounded-lg border-[1.5px] py-2 text-xs font-semibold transition-all ${discountType === "FLAT" ? "border-accent bg-accent-bg text-accent" : "border-border"}`}
+                    >
+                      ₹ Flat
+                    </button>
                   </div>
                 </div>
                 <div className="flex-1">
-                  <label className="mb-[5px] block text-xs font-semibold text-text2">Value *</label>
-                  <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent" type="number" placeholder={discountType === "PERCENTAGE" ? "e.g. 20" : "e.g. 100"} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
+                  <label className="mb-[5px] block text-xs font-semibold text-text2">
+                    Value *
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent"
+                    type="number"
+                    placeholder={
+                      discountType === "PERCENTAGE" ? "e.g. 20" : "e.g. 100"
+                    }
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                  />
                 </div>
               </div>
 
@@ -332,21 +433,42 @@ export default function OffersPage() {
               <div className="mb-4 flex gap-3">
                 {type === "BILL_DISCOUNT" && (
                   <div className="flex-1">
-                    <label className="mb-[5px] block text-xs font-semibold text-text2">Min Order (₹)</label>
-                    <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent" type="number" placeholder="e.g. 500" value={minOrderAmount} onChange={(e) => setMinOrderAmount(e.target.value)} />
+                    <label className="mb-[5px] block text-xs font-semibold text-text2">
+                      Min Order (₹)
+                    </label>
+                    <input
+                      className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent"
+                      type="number"
+                      placeholder="e.g. 500"
+                      value={minOrderAmount}
+                      onChange={(e) => setMinOrderAmount(e.target.value)}
+                    />
                   </div>
                 )}
                 {discountType === "PERCENTAGE" && (
                   <div className="flex-1">
-                    <label className="mb-[5px] block text-xs font-semibold text-text2">Max Discount (₹)</label>
-                    <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent" type="number" placeholder="e.g. 200" value={maxDiscount} onChange={(e) => setMaxDiscount(e.target.value)} />
+                    <label className="mb-[5px] block text-xs font-semibold text-text2">
+                      Max Discount (₹)
+                    </label>
+                    <input
+                      className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent"
+                      type="number"
+                      placeholder="e.g. 200"
+                      value={maxDiscount}
+                      onChange={(e) => setMaxDiscount(e.target.value)}
+                    />
                   </div>
                 )}
               </div>
 
               {/* Schedule - Days */}
               <div className="mb-4">
-                <label className="mb-[5px] block text-xs font-semibold text-text2">Active Days <span className="font-normal text-text3">(empty = every day)</span></label>
+                <label className="mb-[5px] block text-xs font-semibold text-text2">
+                  Active Days{" "}
+                  <span className="font-normal text-text3">
+                    (empty = every day)
+                  </span>
+                </label>
                 <div className="flex flex-wrap gap-1.5">
                   {DAY_LABELS.map((label, i) => (
                     <button
@@ -363,31 +485,81 @@ export default function OffersPage() {
               {/* Schedule - Date range */}
               <div className="mb-4 flex gap-3">
                 <div className="flex-1">
-                  <label className="mb-[5px] block text-xs font-semibold text-text2">Start Date</label>
-                  <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none focus:border-accent" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <label className="mb-[5px] block text-xs font-semibold text-text2">
+                    Start Date
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none focus:border-accent"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
                 </div>
                 <div className="flex-1">
-                  <label className="mb-[5px] block text-xs font-semibold text-text2">End Date</label>
-                  <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none focus:border-accent" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                  <label className="mb-[5px] block text-xs font-semibold text-text2">
+                    End Date
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none focus:border-accent"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
                 </div>
               </div>
 
               {/* Promo Code */}
               <div className="mb-4 flex gap-3">
                 <div className="flex-1">
-                  <label className="mb-[5px] block text-xs font-semibold text-text2">Promo Code <span className="font-normal text-text3">(empty = auto-apply)</span></label>
-                  <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] font-mono text-sm uppercase outline-none placeholder:text-text3 placeholder:normal-case focus:border-accent" placeholder="e.g. FLAT20" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} />
+                  <label className="mb-[5px] block text-xs font-semibold text-text2">
+                    Promo Code{" "}
+                    <span className="font-normal text-text3">
+                      (empty = auto-apply)
+                    </span>
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] font-mono text-sm uppercase outline-none placeholder:text-text3 placeholder:normal-case focus:border-accent"
+                    placeholder="e.g. FLAT20"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  />
                 </div>
                 <div className="flex-1">
-                  <label className="mb-[5px] block text-xs font-semibold text-text2">Usage Limit <span className="font-normal text-text3">(empty = unlimited)</span></label>
-                  <input className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent" type="number" placeholder="e.g. 100" value={usageLimit} onChange={(e) => setUsageLimit(e.target.value)} />
+                  <label className="mb-[5px] block text-xs font-semibold text-text2">
+                    Usage Limit{" "}
+                    <span className="font-normal text-text3">
+                      (empty = unlimited)
+                    </span>
+                  </label>
+                  <input
+                    className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent"
+                    type="number"
+                    placeholder="e.g. 100"
+                    value={usageLimit}
+                    onChange={(e) => setUsageLimit(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
 
             <div className="flex shrink-0 justify-end gap-2 border-t border-border px-5 py-3">
-              <button onClick={() => setModalOpen(false)} className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50">{saving ? "Saving..." : editingId ? "Save Changes" : "Create Offer"}</button>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="rounded-lg border-[1.5px] border-border2 bg-transparent px-[18px] py-[9px] text-[13px] font-semibold text-text transition-all hover:bg-surface2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-white transition-all hover:bg-accent2 disabled:opacity-50"
+              >
+                {saving
+                  ? "Saving..."
+                  : editingId
+                    ? "Save Changes"
+                    : "Create Offer"}
+              </button>
             </div>
           </div>
         </div>
@@ -395,25 +567,40 @@ export default function OffersPage() {
 
       {/* Stats Modal */}
       {statsModal && (
-        <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO" onClick={(e) => e.target === e.currentTarget && setStatsModal(null)}>
+        <div
+          className="fixed inset-0 z-500 flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO"
+          onClick={(e) => e.target === e.currentTarget && setStatsModal(null)}
+        >
           <div className="mx-4 w-full max-w-[360px] overflow-hidden rounded-[14px] bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] animate-slideUp sm:mx-0">
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div className="text-sm font-bold">{statsModal.offer.name}</div>
-              <button onClick={() => setStatsModal(null)} className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 hover:bg-red-bg hover:text-red">✕</button>
+              <button
+                onClick={() => setStatsModal(null)}
+                className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 hover:bg-red-bg hover:text-red"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-5">
               <div className="mb-3 grid grid-cols-2 gap-3">
                 <div className="rounded-[10px] border border-border bg-surface2 p-3">
                   <div className="text-[10px] text-text3">Redemptions</div>
-                  <div className="font-serif text-xl font-bold">{statsModal.redemptions}</div>
+                  <div className="font-serif text-xl font-bold">
+                    {statsModal.redemptions}
+                  </div>
                 </div>
                 <div className="rounded-[10px] border border-border bg-surface2 p-3">
-                  <div className="text-[10px] text-text3">Total Discount Given</div>
-                  <div className="font-serif text-xl font-bold">₹{statsModal.totalDiscountGiven.toLocaleString("en-IN")}</div>
+                  <div className="text-[10px] text-text3">
+                    Total Discount Given
+                  </div>
+                  <div className="font-serif text-xl font-bold">
+                    ₹{statsModal.totalDiscountGiven.toLocaleString("en-IN")}
+                  </div>
                 </div>
               </div>
               <div className="text-xs text-text3">
-                {offerBadge(statsModal.offer)} · {scheduleLabel(statsModal.offer)}
+                {offerBadge(statsModal.offer)} ·{" "}
+                {scheduleLabel(statsModal.offer)}
               </div>
             </div>
           </div>

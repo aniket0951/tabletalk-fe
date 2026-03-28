@@ -5,25 +5,26 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { PlanName, RequestType } from "@/types/constants";
 
 const plans = [
   {
-    key: "STARTER",
-    name: "Starter",
+    key: PlanName.Starter,
+    name: PlanName.Starter,
     desc: "Up to 500 orders/month · 1 mode",
     price: "₹999",
     period: "/mo",
   },
   {
-    key: "GROWTH",
-    name: "Growth",
+    key: PlanName.Growth,
+    name: PlanName.Growth,
     desc: "Unlimited orders · Both modes · Analytics",
     price: "₹1,499",
     period: "/mo",
     popular: true,
   },
   {
-    key: "MULTI",
+    key: PlanName.Multi,
     name: "Multi-Branch",
     desc: "Up to 5 branches · All features",
     price: "₹3,999",
@@ -45,7 +46,7 @@ export default function OnboardingStep2() {
 
     try {
       const res = await apiFetch("/api/billing/subscription", {
-        method: "POST",
+        method: RequestType.Post,
         body: JSON.stringify({ plan: selected }),
       });
 
@@ -67,7 +68,9 @@ export default function OnboardingStep2() {
   async function handleAddDefaults() {
     setAddingCats(true);
     try {
-      await apiFetch("/api/menu/categories/defaults", { method: "POST" });
+      await apiFetch("/api/menu/categories/defaults", {
+        method: RequestType.Post,
+      });
     } catch {
       // proceed even if it fails
     }
@@ -172,9 +175,12 @@ export default function OnboardingStep2() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[3px]">
           <div className="mx-4 w-full max-w-[420px] overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)]">
             <div className="px-5 pt-5 sm:px-6 sm:pt-6">
-              <div className="mb-1 text-base font-bold tracking-[-0.01em]">Add default menu categories?</div>
+              <div className="mb-1 text-base font-bold tracking-[-0.01em]">
+                Add default menu categories?
+              </div>
               <div className="text-[13px] leading-[1.6] text-text2">
-                We can set up starter categories so you can begin adding items right away.
+                We can set up starter categories so you can begin adding items
+                right away.
               </div>
             </div>
             <div className="px-5 py-4 sm:px-6">
@@ -184,9 +190,14 @@ export default function OnboardingStep2() {
                   { emoji: "🍛", name: "Mains" },
                   { emoji: "🍰", name: "Desserts" },
                 ].map((cat) => (
-                  <div key={cat.name} className="flex items-center gap-[10px] rounded-[8px] border border-border bg-background px-[14px] py-[10px]">
+                  <div
+                    key={cat.name}
+                    className="flex items-center gap-[10px] rounded-[8px] border border-border bg-background px-[14px] py-[10px]"
+                  >
                     <span className="text-base">{cat.emoji}</span>
-                    <span className="text-[13px] font-semibold">{cat.name}</span>
+                    <span className="text-[13px] font-semibold">
+                      {cat.name}
+                    </span>
                   </div>
                 ))}
               </div>

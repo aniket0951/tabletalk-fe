@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
@@ -29,14 +29,18 @@ export default function CampaignHistoryPage() {
   const toggleSidebar = useSidebarToggle();
   const [campaigns, setCampaigns] = useState<ApiCampaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [detailCampaign, setDetailCampaign] = useState<ApiCampaign | null>(null);
+  const [detailCampaign, setDetailCampaign] = useState<ApiCampaign | null>(
+    null,
+  );
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
     // Try cache first (set by main campaigns page)
     const cached = getCached<{ campaigns: ApiCampaign[] }>("campaigns_history");
     if (cached) {
-      const filtered = (cached.campaigns || []).filter((c) => c.status !== "DRAFT");
+      const filtered = (cached.campaigns || []).filter(
+        (c) => c.status !== "DRAFT",
+      );
       // Defer setState to avoid synchronous setState in effect body
       Promise.resolve().then(() => {
         setCampaigns(filtered);
@@ -49,7 +53,11 @@ export default function CampaignHistoryPage() {
       .then((r) => r.json())
       .then((body) => {
         const data = body.data;
-        setCampaigns((data?.campaigns || []).filter((c: ApiCampaign) => c.status !== "DRAFT"));
+        setCampaigns(
+          (data?.campaigns || []).filter(
+            (c: ApiCampaign) => c.status !== "DRAFT",
+          ),
+        );
         setCache("campaigns_history", data, TTL.FIVE_MIN);
         setLoading(false);
       })
@@ -85,7 +93,9 @@ export default function CampaignHistoryPage() {
           </Link>
           <div>
             <div className="text-sm font-semibold">Campaign History</div>
-            <div className="mt-0.5 text-xs text-text3">{campaigns.length} campaigns</div>
+            <div className="mt-0.5 text-xs text-text3">
+              {campaigns.length} campaigns
+            </div>
           </div>
         </div>
 
@@ -102,9 +112,10 @@ export default function CampaignHistoryPage() {
             {campaigns.map((c) => {
               const st = statusMap[c.status] || statusMap.DRAFT;
               const tp = typeMap[c.type] || typeMap.CUSTOM;
-              const deliveryRate = c.stats && c.stats.total > 0
-                ? Math.round(((c.stats.delivered || 0) / c.stats.total) * 100)
-                : 0;
+              const deliveryRate =
+                c.stats && c.stats.total > 0
+                  ? Math.round(((c.stats.delivered || 0) / c.stats.total) * 100)
+                  : 0;
               return (
                 <div
                   key={c.id}
@@ -115,29 +126,45 @@ export default function CampaignHistoryPage() {
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-lg">{tp.emoji}</span>
                       <div className="min-w-0">
-                        <div className="truncate text-[13px] font-bold">{c.title}</div>
+                        <div className="truncate text-[13px] font-bold">
+                          {c.title}
+                        </div>
                         <div className="mt-0.5 text-[11px] text-text3">
-                          {c.audienceCount.toLocaleString()} customers · ₹{c.totalCost.toFixed(0)}
+                          {c.audienceCount.toLocaleString()} customers · ₹
+                          {c.totalCost.toFixed(0)}
                         </div>
                       </div>
                     </div>
-                    <span className={`shrink-0 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold ${st.cls}`}>
+                    <span
+                      className={`shrink-0 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold ${st.cls}`}
+                    >
                       {st.label}
                     </span>
                   </div>
                   {c.stats && c.stats.total > 0 && (
                     <div className="border-t border-border px-4 py-2">
                       <div className="mb-1.5 flex justify-between text-[11px] text-text3">
-                        <span>Delivered {c.stats.delivered}/{c.stats.total}</span>
-                        <span className="font-semibold text-text2">{deliveryRate}%</span>
+                        <span>
+                          Delivered {c.stats.delivered}/{c.stats.total}
+                        </span>
+                        <span className="font-semibold text-text2">
+                          {deliveryRate}%
+                        </span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-surface2">
-                        <div className="h-full rounded-full bg-green-mid transition-all" style={{ width: `${deliveryRate}%` }} />
+                        <div
+                          className="h-full rounded-full bg-green-mid transition-all"
+                          style={{ width: `${deliveryRate}%` }}
+                        />
                       </div>
                     </div>
                   )}
                   <div className="border-t border-border px-4 py-2 text-[10px] text-text3">
-                    {new Date(c.createdAt).toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" })}
+                    {new Date(c.createdAt).toLocaleDateString([], {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </div>
                 </div>
               );
@@ -150,30 +177,46 @@ export default function CampaignHistoryPage() {
       {(detailCampaign || detailLoading) && (
         <div
           className="fixed inset-0 z-300 flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO"
-          onClick={(e) => e.target === e.currentTarget && setDetailCampaign(null)}
+          onClick={(e) =>
+            e.target === e.currentTarget && setDetailCampaign(null)
+          }
         >
           <div className="mx-4 w-full max-w-[460px] overflow-hidden rounded-[14px] bg-surface shadow-[0_20px_60px_rgba(0,0,0,.12)] animate-slideUp sm:mx-0">
             {detailLoading && !detailCampaign ? (
-              <div className="px-5 py-8 text-center text-sm text-text3">Loading...</div>
+              <div className="px-5 py-8 text-center text-sm text-text3">
+                Loading...
+              </div>
             ) : detailCampaign ? (
               <>
                 <div className="flex items-center justify-between border-b border-border px-5 py-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span>{typeMap[detailCampaign.type]?.emoji}</span>
-                      <span className="truncate text-sm font-bold">{detailCampaign.title}</span>
+                      <span className="truncate text-sm font-bold">
+                        {detailCampaign.title}
+                      </span>
                     </div>
                     <div className="mt-0.5 text-[11px] text-text3">
-                      {new Date(detailCampaign.createdAt).toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" })}
+                      {new Date(detailCampaign.createdAt).toLocaleDateString(
+                        [],
+                        { day: "2-digit", month: "short", year: "numeric" },
+                      )}
                     </div>
                   </div>
-                  <button onClick={() => setDetailCampaign(null)} className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 transition-all hover:bg-red-bg hover:text-red">✕</button>
+                  <button
+                    onClick={() => setDetailCampaign(null)}
+                    className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-surface2 text-sm text-text2 transition-all hover:bg-red-bg hover:text-red"
+                  >
+                    ✕
+                  </button>
                 </div>
 
                 <div className="px-5 py-4">
                   {/* Status */}
                   <div className="mb-3">
-                    <span className={`rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold ${statusMap[detailCampaign.status]?.cls}`}>
+                    <span
+                      className={`rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold ${statusMap[detailCampaign.status]?.cls}`}
+                    >
                       {statusMap[detailCampaign.status]?.label}
                     </span>
                   </div>
@@ -186,17 +229,44 @@ export default function CampaignHistoryPage() {
                   {/* Delivery Stats */}
                   {detailCampaign.stats && detailCampaign.stats.total > 0 && (
                     <>
-                      <div className="mb-3 text-xs font-semibold text-text2">Delivery Stats</div>
+                      <div className="mb-3 text-xs font-semibold text-text2">
+                        Delivery Stats
+                      </div>
                       <div className="grid grid-cols-2 gap-2 mb-3">
                         {[
-                          { label: "Delivered", value: detailCampaign.stats.delivered, cls: "text-green-mid" },
-                          { label: "Failed", value: detailCampaign.stats.failed, cls: "text-red" },
-                          { label: "Pending", value: detailCampaign.stats.pending, cls: "text-amber" },
-                          { label: "Total", value: detailCampaign.stats.total, cls: "text-text" },
+                          {
+                            label: "Delivered",
+                            value: detailCampaign.stats.delivered,
+                            cls: "text-green-mid",
+                          },
+                          {
+                            label: "Failed",
+                            value: detailCampaign.stats.failed,
+                            cls: "text-red",
+                          },
+                          {
+                            label: "Pending",
+                            value: detailCampaign.stats.pending,
+                            cls: "text-amber",
+                          },
+                          {
+                            label: "Total",
+                            value: detailCampaign.stats.total,
+                            cls: "text-text",
+                          },
                         ].map((s) => (
-                          <div key={s.label} className="rounded-lg border border-border bg-surface p-2">
-                            <div className="text-[10px] text-text3">{s.label}</div>
-                            <div className={`font-serif text-base font-bold ${s.cls}`}>{s.value}</div>
+                          <div
+                            key={s.label}
+                            className="rounded-lg border border-border bg-surface p-2"
+                          >
+                            <div className="text-[10px] text-text3">
+                              {s.label}
+                            </div>
+                            <div
+                              className={`font-serif text-base font-bold ${s.cls}`}
+                            >
+                              {s.value}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -206,19 +276,40 @@ export default function CampaignHistoryPage() {
                         <div className="mb-1 flex justify-between text-[11px] text-text3">
                           <span>Delivery rate</span>
                           <span className="font-semibold text-text2">
-                            {Math.round((detailCampaign.stats.delivered / detailCampaign.stats.total) * 100)}%
+                            {Math.round(
+                              (detailCampaign.stats.delivered /
+                                detailCampaign.stats.total) *
+                                100,
+                            )}
+                            %
                           </span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-surface2">
-                          <div className="h-full rounded-full bg-green-mid" style={{ width: `${(detailCampaign.stats.delivered / detailCampaign.stats.total) * 100}%` }} />
+                          <div
+                            className="h-full rounded-full bg-green-mid"
+                            style={{
+                              width: `${(detailCampaign.stats.delivered / detailCampaign.stats.total) * 100}%`,
+                            }}
+                          />
                         </div>
                       </div>
 
                       {/* Channel breakdown */}
-                      {(detailCampaign.stats.whatsapp !== undefined || detailCampaign.stats.sms !== undefined) && (
+                      {(detailCampaign.stats.whatsapp !== undefined ||
+                        detailCampaign.stats.sms !== undefined) && (
                         <div className="flex gap-3 text-[11px]">
-                          <span className="text-text3">WhatsApp: <span className="font-semibold text-text2">{detailCampaign.stats.whatsapp || 0}</span></span>
-                          <span className="text-text3">SMS: <span className="font-semibold text-text2">{detailCampaign.stats.sms || 0}</span></span>
+                          <span className="text-text3">
+                            WhatsApp:{" "}
+                            <span className="font-semibold text-text2">
+                              {detailCampaign.stats.whatsapp || 0}
+                            </span>
+                          </span>
+                          <span className="text-text3">
+                            SMS:{" "}
+                            <span className="font-semibold text-text2">
+                              {detailCampaign.stats.sms || 0}
+                            </span>
+                          </span>
                         </div>
                       )}
                     </>
@@ -227,7 +318,11 @@ export default function CampaignHistoryPage() {
                   {/* Cost */}
                   <div className="mt-3 flex justify-between border-t border-border pt-3 text-sm">
                     <span className="text-text3">Cost</span>
-                    <span className="font-bold">₹{detailCampaign.totalCost.toFixed(0)} ({detailCampaign.audienceCount} × ₹{detailCampaign.costPerMessage})</span>
+                    <span className="font-bold">
+                      ₹{detailCampaign.totalCost.toFixed(0)} (
+                      {detailCampaign.audienceCount} × ₹
+                      {detailCampaign.costPerMessage})
+                    </span>
                   </div>
                 </div>
               </>

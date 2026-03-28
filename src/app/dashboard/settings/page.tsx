@@ -8,6 +8,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../contexts";
 import { apiFetch } from "@/lib/api";
 import { cachedFetch, clearCache, TTL } from "@/lib/cache";
+import { RequestType } from "@/types/constants";
 
 export default function SettingsPage() {
   const toggleSidebar = useSidebarToggle();
@@ -49,7 +50,9 @@ export default function SettingsPage() {
   async function handleGenerateCode() {
     setGeneratingCode(true);
     try {
-      const res = await apiFetch("/api/restaurant/code", { method: "POST" });
+      const res = await apiFetch("/api/restaurant/code", {
+        method: RequestType.Post,
+      });
       const body = await res.json();
       if (res.ok) {
         setRestaurantCode(body.data.restaurantCode);
@@ -67,7 +70,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const res = await apiFetch("/api/restaurant", {
-        method: "PATCH",
+        method: RequestType.Patch,
         body: JSON.stringify({
           name: restName,
           phone,
@@ -91,7 +94,9 @@ export default function SettingsPage() {
   async function handleDeleteAccount() {
     setDeleting(true);
     try {
-      const res = await apiFetch("/api/user/delete", { method: "DELETE" });
+      const res = await apiFetch("/api/user/delete", {
+        method: RequestType.Delete,
+      });
       if (res.ok) {
         localStorage.clear();
         router.push(ROUTES.AUTH_LOGIN);

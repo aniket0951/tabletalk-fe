@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -7,6 +8,10 @@ import { SOCKET_EVENT } from "@/lib/events";
 import { apiFetch } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import type { ApiOrder, OrderStatus } from "@/types";
+import {
+  OrderStatus as OrderStatusConst,
+  RequestType,
+} from "@/types/constants";
 
 // Lean type matching what GET /staff/orders returns
 interface StaffOrder {
@@ -21,38 +26,61 @@ interface StaffOrder {
 }
 
 const statusMap: Record<string, { cls: string; label: string }> = {
-  NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
-  COOKING: { cls: "bg-amber-bg text-amber", label: "COOKING" },
-  READY: { cls: "bg-green-bg text-green-mid", label: "READY" },
-  BILLED: { cls: "bg-blue-bg text-blue", label: "BILLED" },
-  SETTLED: { cls: "bg-surface2 text-text3", label: "SETTLED" },
+  NEW: { cls: "bg-new-bg text-accent", label: OrderStatusConst.New },
+  COOKING: { cls: "bg-amber-bg text-amber", label: OrderStatusConst.Cooking },
+  READY: { cls: "bg-green-bg text-green-mid", label: OrderStatusConst.Ready },
+  BILLED: { cls: "bg-blue-bg text-blue", label: OrderStatusConst.Billed },
+  SETTLED: { cls: "bg-surface2 text-text3", label: OrderStatusConst.Settled },
 };
 
 const activeFilterTabs: { label: string; value: string }[] = [
-  { label: "All", value: "ALL" },
-  { label: "New", value: "NEW" },
-  { label: "Cooking", value: "COOKING" },
-  { label: "Ready", value: "READY" },
-  { label: "Billed", value: "BILLED" },
-  { label: "Settled", value: "SETTLED" },
+  { label: "All", value: OrderStatusConst.All },
+  { label: "New", value: OrderStatusConst.New },
+  { label: "Cooking", value: OrderStatusConst.Cooking },
+  { label: "Ready", value: OrderStatusConst.Ready },
+  { label: "Billed", value: OrderStatusConst.Billed },
+  { label: "Settled", value: OrderStatusConst.Settled },
 ];
 
 const historyFilterTabs: { label: string; value: string }[] = [
-  { label: "All", value: "ALL" },
-  { label: "New", value: "NEW" },
-  { label: "Cooking", value: "COOKING" },
-  { label: "Ready", value: "READY" },
-  { label: "Billed", value: "BILLED" },
-  { label: "Settled", value: "SETTLED" },
+  { label: "All", value: OrderStatusConst.All },
+  { label: "New", value: OrderStatusConst.New },
+  { label: "Cooking", value: OrderStatusConst.Cooking },
+  { label: "Ready", value: OrderStatusConst.Ready },
+  { label: "Billed", value: OrderStatusConst.Billed },
+  { label: "Settled", value: OrderStatusConst.Settled },
 ];
 
-function nextAction(status: OrderStatus): { nextStatus: string; label: string; cls: string } | null {
+function nextAction(
+  status: OrderStatus,
+): { nextStatus: string; label: string; cls: string } | null {
   switch (status) {
-    case "NEW": return { nextStatus: "COOKING", label: "Start Cooking", cls: "border border-[rgba(22,101,52,.2)] bg-green-bg text-green" };
-    case "COOKING": return { nextStatus: "READY", label: "Mark Ready", cls: "border border-[rgba(22,101,52,.2)] bg-green-bg text-green" };
-    case "READY": return { nextStatus: "BILLED", label: "Send Bill", cls: "bg-accent text-white" };
-    case "BILLED": return { nextStatus: "SETTLED", label: "Settle", cls: "border border-[rgba(22,101,52,.2)] bg-green-bg text-green" };
-    default: return null;
+    case OrderStatusConst.New:
+      return {
+        nextStatus: OrderStatusConst.Cooking,
+        label: "Start Cooking",
+        cls: "border border-[rgba(22,101,52,.2)] bg-green-bg text-green",
+      };
+    case OrderStatusConst.Cooking:
+      return {
+        nextStatus: OrderStatusConst.Ready,
+        label: "Mark Ready",
+        cls: "border border-[rgba(22,101,52,.2)] bg-green-bg text-green",
+      };
+    case OrderStatusConst.Ready:
+      return {
+        nextStatus: OrderStatusConst.Billed,
+        label: "Send Bill",
+        cls: "bg-accent text-white",
+      };
+    case OrderStatusConst.Billed:
+      return {
+        nextStatus: OrderStatusConst.Settled,
+        label: "Settle",
+        cls: "border border-[rgba(22,101,52,.2)] bg-green-bg text-green",
+      };
+    default:
+      return null;
   }
 }
 
@@ -83,7 +111,9 @@ export default function StaffOrdersPage() {
     if (to) params.set("to", to);
     apiFetch(`/api/staff/orders?${params}`)
       .then((r) => r.json())
-      .then((body) => { setOrders(Array.isArray(body.data) ? body.data : []); })
+      .then((body) => {
+        setOrders(Array.isArray(body.data) ? body.data : []);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }
@@ -110,42 +140,53 @@ export default function StaffOrdersPage() {
       placedAt: o.placedAt,
       staffId: o.staffId,
       table: { label: o.table?.label || "—" },
-      items: o.items?.map((i) => ({
-        quantity: i.quantity,
-        menuItem: { name: i.menuItem.name, type: i.menuItem.type },
-      })) || [],
+      items:
+        o.items?.map((i) => ({
+          quantity: i.quantity,
+          menuItem: { name: i.menuItem.name, type: i.menuItem.type },
+        })) || [],
     };
   }
 
-  const handleOrderUpdate = useCallback((updated: ApiOrder) => {
-    const myId = getMyStaffId();
-    if (!myId) return;
-    const lean = toStaffOrder(updated);
+  const handleOrderUpdate = useCallback(
+    (updated: ApiOrder) => {
+      const myId = getMyStaffId();
+      if (!myId) return;
+      const lean = toStaffOrder(updated);
 
-    setOrders((prev) => {
-      const exists = prev.some((o) => o.id === updated.id);
+      setOrders((prev) => {
+        const exists = prev.some((o) => o.id === updated.id);
 
-      if (updated.staffId === myId) {
-        if (exists) return prev.map((o) => (o.id === updated.id ? lean : o));
-        return [lean, ...prev];
-      } else {
-        if (exists) return prev.filter((o) => o.id !== updated.id);
-        return prev;
+        if (updated.staffId === myId) {
+          if (exists) return prev.map((o) => (o.id === updated.id ? lean : o));
+          return [lean, ...prev];
+        } else {
+          if (exists) return prev.filter((o) => o.id !== updated.id);
+          return prev;
+        }
+      });
+    },
+    [getMyStaffId],
+  );
+
+  const handleOrderCreate = useCallback(
+    (created: ApiOrder) => {
+      const myId = getMyStaffId();
+      if (myId && created.staffId === myId) {
+        setOrders((prev) => [toStaffOrder(created), ...prev]);
       }
-    });
-  }, [getMyStaffId]);
-
-  const handleOrderCreate = useCallback((created: ApiOrder) => {
-    const myId = getMyStaffId();
-    if (myId && created.staffId === myId) {
-      setOrders((prev) => [toStaffOrder(created), ...prev]);
-    }
-  }, [getMyStaffId]);
+    },
+    [getMyStaffId],
+  );
 
   useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdate);
   useSocketEvent(SOCKET_EVENT.ORDER_CREATED, handleOrderCreate);
 
-  function buildDateRange(filter: string, cFrom: string, cTo: string): { from: string; to: string } {
+  function buildDateRange(
+    filter: string,
+    cFrom: string,
+    cTo: string,
+  ): { from: string; to: string } {
     const now = new Date();
     const fmt = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -192,9 +233,14 @@ export default function StaffOrdersPage() {
     if (to) params.set("to", to);
     apiFetch(`/api/staff/orders?${params}`)
       .then((r) => r.json())
-      .then((body) => { setHistoryOrders(Array.isArray(body.data) ? body.data : []); })
+      .then((body) => {
+        setHistoryOrders(Array.isArray(body.data) ? body.data : []);
+      })
       .catch(() => {})
-      .finally(() => { setHistoryLoading(false); setHistoryFetched(true); });
+      .finally(() => {
+        setHistoryLoading(false);
+        setHistoryFetched(true);
+      });
   }
 
   function handleTabChange(tab: "active" | "history") {
@@ -218,18 +264,24 @@ export default function StaffOrdersPage() {
     }
   }
 
-  async function handleStatusUpdate(orderId: string, nextStatus: string, label: string) {
+  async function handleStatusUpdate(
+    orderId: string,
+    nextStatus: string,
+    label: string,
+  ) {
     setUpdatingId(orderId);
     try {
       const res = await apiFetch(`/api/staff/orders/${orderId}`, {
-        method: "PATCH",
+        method: RequestType.Patch,
         body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {
         const body = await res.json();
         const updated = body.data;
         // Update local state immediately — don't wait for socket
-        setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+        setOrders((prev) =>
+          prev.map((o) => (o.id === updated.id ? updated : o)),
+        );
         showToast(label);
       } else {
         showToast("Failed to update order");
@@ -255,17 +307,32 @@ export default function StaffOrdersPage() {
   // Stats source
   const sourceOrders = activeTab === "active" ? orders : historyOrders;
   const currentLoading = activeTab === "active" ? loading : historyLoading;
-  const currentFiltered = activeTab === "active" ? activeFiltered : historyFiltered;
-  const currentFilterTabs = activeTab === "active" ? activeFilterTabs : historyFilterTabs;
+  const currentFiltered =
+    activeTab === "active" ? activeFiltered : historyFiltered;
+  const currentFilterTabs =
+    activeTab === "active" ? activeFilterTabs : historyFilterTabs;
   const currentFilter = activeTab === "active" ? activeFilter : historyFilter;
 
-  const settledSourceOrders = sourceOrders.filter((o) => o.status === "SETTLED");
+  const settledSourceOrders = sourceOrders.filter(
+    (o) => o.status === OrderStatusConst.Settled,
+  );
   const totalOrders = settledSourceOrders.length;
   const totalRevenue = settledSourceOrders.reduce((sum, o) => sum + o.total, 0);
-  const avgOrderValue = totalOrders ? Math.round(totalRevenue / totalOrders) : 0;
-  const activeCount = sourceOrders.filter((o) => o.status === "NEW" || o.status === "COOKING" || o.status === "READY").length;
-  const billedCount = sourceOrders.filter((o) => o.status === "BILLED").length;
-  const settledCount = sourceOrders.filter((o) => o.status === "SETTLED").length;
+  const avgOrderValue = totalOrders
+    ? Math.round(totalRevenue / totalOrders)
+    : 0;
+  const activeCount = sourceOrders.filter(
+    (o) =>
+      o.status === OrderStatusConst.New ||
+      o.status === OrderStatusConst.Cooking ||
+      o.status === OrderStatusConst.Ready,
+  ).length;
+  const billedCount = sourceOrders.filter(
+    (o) => o.status === OrderStatusConst.Billed,
+  ).length;
+  const settledCount = sourceOrders.filter(
+    (o) => o.status === OrderStatusConst.Settled,
+  ).length;
   const statusBreakdown = totalOrders
     ? `${activeCount} Active / ${billedCount} Billed / ${settledCount} Settled`
     : "—";
@@ -279,7 +346,9 @@ export default function StaffOrdersPage() {
     <div className="p-4 animate-fadeIn">
       <div className="mb-4">
         <div className="text-sm font-semibold">My Orders</div>
-        <div className="mt-0.5 text-xs text-text3">{orders.length} active orders</div>
+        <div className="mt-0.5 text-xs text-text3">
+          {orders.length} active orders
+        </div>
       </div>
 
       {/* Tab pills */}
@@ -303,20 +372,36 @@ export default function StaffOrdersPage() {
       {!currentLoading && (
         <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <div className="rounded-[10px] border border-border bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,.07),0_1px_2px_rgba(0,0,0,.04)]">
-            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">Total Orders</div>
-            <div className="text-[22px] font-bold leading-none tracking-[-0.02em]">{totalOrders}</div>
+            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">
+              Total Orders
+            </div>
+            <div className="text-[22px] font-bold leading-none tracking-[-0.02em]">
+              {totalOrders}
+            </div>
           </div>
           <div className="rounded-[10px] border border-border bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,.07),0_1px_2px_rgba(0,0,0,.04)]">
-            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">Revenue</div>
-            <div className="text-[22px] font-bold leading-none tracking-[-0.02em]">₹{totalRevenue.toLocaleString("en-IN")}</div>
+            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">
+              Revenue
+            </div>
+            <div className="text-[22px] font-bold leading-none tracking-[-0.02em]">
+              ₹{totalRevenue.toLocaleString("en-IN")}
+            </div>
           </div>
           <div className="rounded-[10px] border border-border bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,.07),0_1px_2px_rgba(0,0,0,.04)]">
-            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">Avg Order Value</div>
-            <div className="text-[22px] font-bold leading-none tracking-[-0.02em]">₹{avgOrderValue.toLocaleString("en-IN")}</div>
+            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">
+              Avg Order Value
+            </div>
+            <div className="text-[22px] font-bold leading-none tracking-[-0.02em]">
+              ₹{avgOrderValue.toLocaleString("en-IN")}
+            </div>
           </div>
           <div className="rounded-[10px] border border-border bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,.07),0_1px_2px_rgba(0,0,0,.04)]">
-            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">Breakdown</div>
-            <div className="text-[16px] font-bold leading-none tracking-[-0.02em]">{statusBreakdown}</div>
+            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-text3">
+              Breakdown
+            </div>
+            <div className="text-[16px] font-bold leading-none tracking-[-0.02em]">
+              {statusBreakdown}
+            </div>
           </div>
         </div>
       )}
@@ -330,11 +415,16 @@ export default function StaffOrdersPage() {
           { label: "Last 30 Days", value: "30days" },
           { label: "Custom", value: "custom" },
         ].map((tab) => {
-          const current = activeTab === "active" ? activeDateFilter : dateFilter;
+          const current =
+            activeTab === "active" ? activeDateFilter : dateFilter;
           return (
             <button
               key={tab.value}
-              onClick={() => activeTab === "active" ? handleActiveDateFilterChange(tab.value) : handleDateFilterChange(tab.value)}
+              onClick={() =>
+                activeTab === "active"
+                  ? handleActiveDateFilterChange(tab.value)
+                  : handleDateFilterChange(tab.value)
+              }
               className={`shrink-0 rounded-2xl border px-3 py-[5px] text-[11px] font-semibold transition-all ${
                 current === tab.value
                   ? "border-text bg-text text-white"
@@ -361,7 +451,10 @@ export default function StaffOrdersPage() {
               onChange={(e) => setActiveCustomTo(e.target.value)}
             />
             <button
-              onClick={() => { if (activeCustomFrom && activeCustomTo) fetchActiveOrders("custom"); }}
+              onClick={() => {
+                if (activeCustomFrom && activeCustomTo)
+                  fetchActiveOrders("custom");
+              }}
               className="rounded-lg bg-accent px-3 py-[5px] text-[11px] font-semibold text-white hover:bg-accent2"
             >
               Apply
@@ -384,7 +477,9 @@ export default function StaffOrdersPage() {
               onChange={(e) => setCustomTo(e.target.value)}
             />
             <button
-              onClick={() => { if (customFrom && customTo) fetchHistory("custom"); }}
+              onClick={() => {
+                if (customFrom && customTo) fetchHistory("custom");
+              }}
               className="rounded-lg bg-accent px-3 py-[5px] text-[11px] font-semibold text-white hover:bg-accent2"
             >
               Apply
@@ -396,11 +491,18 @@ export default function StaffOrdersPage() {
       {/* Status filter tabs */}
       <div className="mb-4 flex gap-[6px] overflow-x-auto pb-1">
         {currentFilterTabs.map((tab) => {
-          const count = tab.value === "ALL" ? sourceOrders.length : statusCounts[tab.value] || 0;
+          const count =
+            tab.value === "ALL"
+              ? sourceOrders.length
+              : statusCounts[tab.value] || 0;
           return (
             <button
               key={tab.value}
-              onClick={() => activeTab === "active" ? setActiveFilter(tab.value) : setHistoryFilter(tab.value)}
+              onClick={() =>
+                activeTab === "active"
+                  ? setActiveFilter(tab.value)
+                  : setHistoryFilter(tab.value)
+              }
               className={`shrink-0 rounded-2xl border px-3 py-[5px] text-[11px] font-semibold transition-all ${
                 currentFilter === tab.value
                   ? "border-text bg-text text-white"
@@ -415,7 +517,9 @@ export default function StaffOrdersPage() {
 
       {/* Orders */}
       {currentLoading ? (
-        <div className="py-10 text-center text-sm text-text3">Loading orders...</div>
+        <div className="py-10 text-center text-sm text-text3">
+          Loading orders...
+        </div>
       ) : currentFiltered.length === 0 ? (
         <div className="py-10 text-center">
           <div className="mb-2 text-2xl">📋</div>
@@ -427,19 +531,32 @@ export default function StaffOrdersPage() {
             const st = statusMap[order.status] || statusMap.NEW;
             const action = nextAction(order.status as OrderStatus);
             return (
-              <div key={order.id} className="overflow-hidden rounded-[12px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+              <div
+                key={order.id}
+                className="overflow-hidden rounded-[12px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]"
+              >
                 <div className="flex items-center justify-between px-4 py-3">
                   <div>
-                    <div className="text-[13px] font-bold">{order.orderCode}</div>
+                    <div className="text-[13px] font-bold">
+                      {order.orderCode}
+                    </div>
                     <div className="mt-0.5 flex items-center gap-2 text-xs text-text2">
                       <span>{order.table?.label || "—"}</span>
                       <span className="text-text3">
-                        {new Date(order.placedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}{" "}
-                        {new Date(order.placedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(order.placedAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                        })}{" "}
+                        {new Date(order.placedAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
                   </div>
-                  <span className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${st.cls}`}>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${st.cls}`}
+                  >
                     {st.label}
                   </span>
                 </div>
@@ -447,18 +564,32 @@ export default function StaffOrdersPage() {
                 <div className="border-t border-border px-4 py-2">
                   {order.items.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 py-1">
-                      <span className="font-mono text-[11px] font-bold text-text3">{item.quantity}×</span>
-                      <span className="flex-1 text-xs">{item.menuItem.name}</span>
-                      <div className={`h-[8px] w-[8px] shrink-0 rounded-[2px] ${item.menuItem.type === "VEG" ? "bg-green-mid" : "bg-red"}`} />
+                      <span className="font-mono text-[11px] font-bold text-text3">
+                        {item.quantity}×
+                      </span>
+                      <span className="flex-1 text-xs">
+                        {item.menuItem.name}
+                      </span>
+                      <div
+                        className={`h-[8px] w-[8px] shrink-0 rounded-[2px] ${item.menuItem.type === "VEG" ? "bg-green-mid" : "bg-red"}`}
+                      />
                     </div>
                   ))}
                 </div>
 
                 <div className="flex items-center justify-between border-t border-border px-4 py-3">
-                  <div className="font-mono text-sm font-bold">₹{order.total}</div>
+                  <div className="font-mono text-sm font-bold">
+                    ₹{order.total}
+                  </div>
                   {action && (
                     <button
-                      onClick={() => handleStatusUpdate(order.id, action.nextStatus, action.label)}
+                      onClick={() =>
+                        handleStatusUpdate(
+                          order.id,
+                          action.nextStatus,
+                          action.label,
+                        )
+                      }
                       disabled={updatingId === order.id}
                       className={`rounded-lg px-4 py-[7px] text-[12px] font-semibold transition-all disabled:opacity-50 ${action.cls}`}
                     >

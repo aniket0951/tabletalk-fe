@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
+import { RequestType } from "@/types/constants";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function LoginPage() {
 
     try {
       const res = await apiFetch("/api/auth/login", {
-        method: "POST",
+        method: RequestType.Post,
         body: JSON.stringify({ email, password }),
       });
 
@@ -51,8 +52,11 @@ export default function LoginPage() {
     setDemoLoading(mode);
     try {
       const res = await apiFetch("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email: "rahul@restaurant.com", password: "demo1234" }),
+        method: RequestType.Post,
+        body: JSON.stringify({
+          email: "rahul@restaurant.com",
+          password: "demo1234",
+        }),
       });
 
       if (!res.ok) {
@@ -175,7 +179,9 @@ export default function LoginPage() {
               disabled={demoLoading !== null}
               className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface disabled:opacity-50"
             >
-              {demoLoading === "subscribed" ? "Loading..." : "✅ With subscription"}
+              {demoLoading === "subscribed"
+                ? "Loading..."
+                : "✅ With subscription"}
             </button>
             <button
               onClick={() => demoLogin("noSub")}

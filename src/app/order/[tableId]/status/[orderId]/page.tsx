@@ -7,6 +7,7 @@ import { ratedKey } from "@/lib/storage-keys";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { SOCKET_EVENT } from "@/lib/events";
 import type { ApiOrder, OrderStatus } from "@/types";
+import { RequestType } from "@/types/constants";
 
 const statusSteps: { key: OrderStatus; label: string }[] = [
   { key: "NEW", label: "Placed" },
@@ -110,12 +111,15 @@ async function downloadReceipt(order: ApiOrder) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   for (const item of order.items) {
-    const name = item.menuItem.name.length > 22
-      ? item.menuItem.name.slice(0, 22) + "..."
-      : item.menuItem.name;
+    const name =
+      item.menuItem.name.length > 22
+        ? item.menuItem.name.slice(0, 22) + "..."
+        : item.menuItem.name;
     const amt = (item.unitPrice * item.quantity).toFixed(2);
     doc.text(name, margin, y);
-    doc.text(String(item.quantity), margin + contentW * 0.65, y, { align: "center" });
+    doc.text(String(item.quantity), margin + contentW * 0.65, y, {
+      align: "center",
+    });
     doc.text(amt, w - margin, y, { align: "right" });
     y += 4.5;
   }
@@ -158,11 +162,12 @@ async function downloadReceipt(order: ApiOrder) {
 
   // Trim page height to content
   const pageHeight = y + 8;
-  (doc.internal.pages[1] as unknown as string[])[1] =
-    (doc.internal.pages[1] as unknown as string[])[1]?.replace(
-      /MediaBox \[0 0 [^\]]+\]/,
-      `MediaBox [0 0 ${(w * 72) / 25.4} ${(pageHeight * 72) / 25.4}]`
-    );
+  (doc.internal.pages[1] as unknown as string[])[1] = (
+    doc.internal.pages[1] as unknown as string[]
+  )[1]?.replace(
+    /MediaBox \[0 0 [^\]]+\]/,
+    `MediaBox [0 0 ${(w * 72) / 25.4} ${(pageHeight * 72) / 25.4}]`,
+  );
 
   doc.save(`receipt-${order.orderCode}.pdf`);
 }
@@ -183,7 +188,10 @@ export default function OrderStatusPage({
 
   // Check if already rated this order
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem(ratedKey(orderId))) {
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem(ratedKey(orderId))
+    ) {
       setRatingSubmitted(true);
     }
   }, [orderId]);
@@ -204,7 +212,7 @@ export default function OrderStatusPage({
     setSubmittingRating(true);
     try {
       const res = await publicFetch("/public/ratings", {
-        method: "POST",
+        method: RequestType.Post,
         body: JSON.stringify({
           orderId,
           ratings: Object.entries(ratings).map(([menuItemId, rating]) => ({
@@ -241,13 +249,17 @@ export default function OrderStatusPage({
     (data: ApiOrder) => {
       if (data.id === orderId) setOrder(data);
     },
-    [orderId]
+    [orderId],
   );
 
   useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdated);
 
   if (loading) {
-    return <div className="py-12 text-center text-sm text-text3">Loading order...</div>;
+    return (
+      <div className="py-12 text-center text-sm text-text3">
+        Loading order...
+      </div>
+    );
   }
 
   if (!order) {
@@ -292,14 +304,16 @@ export default function OrderStatusPage({
                       isCurrent
                         ? "border-accent bg-accent"
                         : isCompleted
-                        ? "border-green-mid bg-green-mid"
-                        : "border-border2 bg-surface"
+                          ? "border-green-mid bg-green-mid"
+                          : "border-border2 bg-surface"
                     } ${isCurrent ? "animate-blink" : ""}`}
                   />
                   {!isLast && (
                     <div
                       className={`w-0.5 flex-1 min-h-[24px] ${
-                        isCompleted && idx < currentStepIdx ? "bg-green-mid" : "bg-border"
+                        isCompleted && idx < currentStepIdx
+                          ? "bg-green-mid"
+                          : "bg-border"
                       }`}
                     />
                   )}
@@ -342,7 +356,9 @@ export default function OrderStatusPage({
             <span>
               {item.menuItem.name} × {item.quantity}
             </span>
-            <span className="text-text2">₹{(item.unitPrice * item.quantity).toFixed(2)}</span>
+            <span className="text-text2">
+              ₹{(item.unitPrice * item.quantity).toFixed(2)}
+            </span>
           </div>
         ))}
         <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm font-bold">
@@ -355,10 +371,14 @@ export default function OrderStatusPage({
       {(order.status === "BILLED" || order.status === "SETTLED") && (
         <div className="mb-4 rounded-[10px] border border-border bg-surface p-3">
           {ratingSubmitted ? (
-            <div className="py-2 text-center text-sm text-text2">Thanks for your ratings!</div>
+            <div className="py-2 text-center text-sm text-text2">
+              Thanks for your ratings!
+            </div>
           ) : (
             <>
-              <div className="mb-3 text-xs font-semibold text-text2">Rate your food</div>
+              <div className="mb-3 text-xs font-semibold text-text2">
+                Rate your food
+              </div>
               <div className="space-y-3">
                 {uniqueItems.map((item) => (
                   <div key={item.menuItemId}>
@@ -368,9 +388,16 @@ export default function OrderStatusPage({
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
                             key={star}
-                            onClick={() => setRatings((prev) => ({ ...prev, [item.menuItemId]: star }))}
+                            onClick={() =>
+                              setRatings((prev) => ({
+                                ...prev,
+                                [item.menuItemId]: star,
+                              }))
+                            }
                             className={`text-lg ${
-                              (ratings[item.menuItemId] || 0) >= star ? "text-amber-400" : "text-text3"
+                              (ratings[item.menuItemId] || 0) >= star
+                                ? "text-amber-400"
+                                : "text-text3"
                             }`}
                           >
                             ★
@@ -383,7 +410,12 @@ export default function OrderStatusPage({
                         type="text"
                         placeholder="Add a note (optional)"
                         value={notes[item.menuItemId] || ""}
-                        onChange={(e) => setNotes((prev) => ({ ...prev, [item.menuItemId]: e.target.value }))}
+                        onChange={(e) =>
+                          setNotes((prev) => ({
+                            ...prev,
+                            [item.menuItemId]: e.target.value,
+                          }))
+                        }
                         className="mt-1 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none placeholder:text-text3 focus:border-accent"
                       />
                     )}
@@ -418,7 +450,9 @@ export default function OrderStatusPage({
       )}
 
       {/* Add more items — only for active orders */}
-      {(order.status === "NEW" || order.status === "COOKING" || order.status === "READY") && (
+      {(order.status === "NEW" ||
+        order.status === "COOKING" ||
+        order.status === "READY") && (
         <Link
           href={`/order/${tableId}?addTo=${orderId}`}
           className="mb-2 block w-full rounded-xl bg-accent py-3 text-center text-sm font-bold text-white transition-all hover:bg-accent2"

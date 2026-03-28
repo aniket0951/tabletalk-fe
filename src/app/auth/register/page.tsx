@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
+import { RequestType } from "@/types/constants";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function RegisterPage() {
 
     try {
       const res = await apiFetch("/api/auth/register", {
-        method: "POST",
+        method: RequestType.Post,
         body: JSON.stringify({ name, email, password }),
       });
 
@@ -53,16 +54,25 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-5">
       <div className="w-full max-w-[420px] rounded-2xl border border-border bg-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,.12),0_8px_20px_rgba(0,0,0,.06)] sm:p-10">
         <div className="mb-7 flex items-center gap-[9px]">
-          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-[7px] bg-accent text-[15px]">🍽</div>
+          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-[7px] bg-accent text-[15px]">
+            🍽
+          </div>
           <div className="font-serif text-lg font-bold">TableTalk</div>
         </div>
-        <div className="mb-1.5 text-[22px] font-bold tracking-[-0.02em]">Create your account</div>
+        <div className="mb-1.5 text-[22px] font-bold tracking-[-0.02em]">
+          Create your account
+        </div>
         <div className="mb-7 text-sm leading-[1.6] text-text2">
           Start your 14-day free trial. No credit card required.
         </div>
 
         <button className="flex w-full items-center justify-center gap-2 rounded-lg border-[1.5px] border-border bg-surface px-[10px] py-[10px] text-sm font-medium text-text transition-all hover:bg-surface2">
-          <img src="https://www.google.com/favicon.ico" width={16} height={16} alt="Google" />
+          <img
+            src="https://www.google.com/favicon.ico"
+            width={16}
+            height={16}
+            alt="Google"
+          />
           Continue with Google
         </button>
 
@@ -79,7 +89,9 @@ export default function RegisterPage() {
             </div>
           )}
           <div className="mb-4">
-            <label className="mb-[5px] block text-xs font-semibold text-text2">Full Name</label>
+            <label className="mb-[5px] block text-xs font-semibold text-text2">
+              Full Name
+            </label>
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
               placeholder="Rahul Sharma"
@@ -89,7 +101,9 @@ export default function RegisterPage() {
             />
           </div>
           <div className="mb-4">
-            <label className="mb-[5px] block text-xs font-semibold text-text2">Email</label>
+            <label className="mb-[5px] block text-xs font-semibold text-text2">
+              Email
+            </label>
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
               type="email"
@@ -100,7 +114,9 @@ export default function RegisterPage() {
             />
           </div>
           <div className="mb-4">
-            <label className="mb-[5px] block text-xs font-semibold text-text2">Password</label>
+            <label className="mb-[5px] block text-xs font-semibold text-text2">
+              Password
+            </label>
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
               type="password"
@@ -121,7 +137,10 @@ export default function RegisterPage() {
 
         <div className="mt-5 text-center text-[13px] text-text2">
           Already have an account?{" "}
-          <Link href={ROUTES.AUTH_LOGIN} className="cursor-pointer font-semibold text-accent">
+          <Link
+            href={ROUTES.AUTH_LOGIN}
+            className="cursor-pointer font-semibold text-accent"
+          >
             Sign in
           </Link>
         </div>

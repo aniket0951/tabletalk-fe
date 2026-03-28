@@ -6,6 +6,7 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { apiFetch } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
+import { RequestType } from "@/types/constants";
 
 interface StaffProfile {
   staffId: string;
@@ -14,7 +15,11 @@ interface StaffProfile {
   restaurantName: string;
 }
 
-export default function StaffLayout({ children }: { children: React.ReactNode }) {
+export default function StaffLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [staff, setStaff] = useState<StaffProfile | null>(null);
@@ -32,12 +37,18 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         if (!r.ok) throw new Error("Unauthorized");
         return r.json();
       })
-      .then((body) => { setStaff(body.data); setChecking(false); })
-      .catch(() => { setChecking(false); router.push(ROUTES.STAFF_LOGIN); });
+      .then((body) => {
+        setStaff(body.data);
+        setChecking(false);
+      })
+      .catch(() => {
+        setChecking(false);
+        router.push(ROUTES.STAFF_LOGIN);
+      });
   }, [pathname, router]);
 
   async function handleLogout() {
-    await apiFetch("/api/staff/auth/logout", { method: "POST" });
+    await apiFetch("/api/staff/auth/logout", { method: RequestType.Post });
     localStorage.removeItem(STORAGE_KEY.STAFF);
     router.push(ROUTES.STAFF_LOGIN);
   }
@@ -61,10 +72,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         {/* Header */}
         <header className="sticky top-0 z-100 flex items-center justify-between border-b border-border bg-surface px-4 py-3">
           <div className="flex items-center gap-[9px]">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] bg-accent text-sm">🍽</div>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] bg-accent text-sm">
+              🍽
+            </div>
             <div>
-              <div className="text-[13px] font-bold">{staff?.restaurantName}</div>
-              <div className="font-mono text-[10px] text-text3">{staff?.name} · {staff?.role}</div>
+              <div className="text-[13px] font-bold">
+                {staff?.restaurantName}
+              </div>
+              <div className="font-mono text-[10px] text-text3">
+                {staff?.name} · {staff?.role}
+              </div>
             </div>
           </div>
           <button
@@ -76,9 +93,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Content */}
-        <main className="flex-1">
-          {children}
-        </main>
+        <main className="flex-1">{children}</main>
       </div>
     </SocketProvider>
   );

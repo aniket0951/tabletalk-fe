@@ -15,6 +15,8 @@ import type {
   CampaignCheckoutResponse,
 } from "@/types";
 
+import { RequestType } from "@/types/constants";
+
 const campaignTypes: {
   key: CampaignType;
   label: string;
@@ -81,7 +83,7 @@ export default function CampaignsPage() {
     setSaving(true);
     try {
       const res = await apiFetch("/campaigns", {
-        method: "POST",
+        method: RequestType.Post,
         body: JSON.stringify({
           type: cType,
           title: cTitle.trim(),
@@ -111,7 +113,7 @@ export default function CampaignsPage() {
       await loadRazorpay();
 
       const res = await apiFetch(`/campaigns/${draftCampaign.id}/checkout`, {
-        method: "POST",
+        method: RequestType.Post,
       });
       if (!res.ok) {
         const body = await res.json();
@@ -134,7 +136,7 @@ export default function CampaignsPage() {
           const verifyRes = await apiFetch(
             `/campaigns/${draftCampaign.id}/verify`,
             {
-              method: "POST",
+              method: RequestType.Post,
               body: JSON.stringify(response),
             },
           );

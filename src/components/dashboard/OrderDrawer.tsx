@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { apiFetch } from "@/lib/api";
 import type { ApiOrder, ApiOrderSummary, ApiStaff } from "@/types";
+import { OrderStatus, OrderTrackStatus, RequestType } from "@/types/constants";
 
 interface OrderDrawerProps {
   /** Pass full order OR just a summary — drawer fetches detail if needed */
@@ -13,29 +14,29 @@ interface OrderDrawerProps {
 }
 
 const statusMap: Record<string, { cls: string; label: string }> = {
-  NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
-  COOKING: { cls: "bg-amber-bg text-amber", label: "COOKING" },
-  READY: { cls: "bg-green-bg text-green-mid", label: "READY" },
-  BILLED: { cls: "bg-blue-bg text-blue", label: "BILL SENT" },
-  SETTLED: { cls: "bg-surface2 text-text3", label: "SETTLED" },
+  NEW: { cls: "bg-new-bg text-accent", label: OrderStatus.New },
+  COOKING: { cls: "bg-amber-bg text-amber", label: OrderStatus.Cooking },
+  READY: { cls: "bg-green-bg text-green-mid", label: OrderStatus.Ready },
+  BILLED: { cls: "bg-blue-bg text-blue", label: OrderStatus.BillSent },
+  SETTLED: { cls: "bg-surface2 text-text3", label: OrderStatus.Billed },
 };
 
 const timeline = [
-  { key: "placedAt", label: "Order Placed", icon: "📱" },
-  { key: "confirmedAt", label: "Confirmed", icon: "✅" },
-  { key: "cookingAt", label: "Kitchen Cooking", icon: "🍳" },
-  { key: "readyAt", label: "Ready to Serve", icon: "🔔" },
-  { key: "billedAt", label: "Bill Sent", icon: "🧾" },
-  { key: "settledAt", label: "Settled", icon: "✅" },
+  { key: OrderTrackStatus.PlacedAt, label: "Order Placed", icon: "📱" },
+  { key: OrderTrackStatus.ConfirmedAt, label: "Confirmed", icon: "✅" },
+  { key: OrderTrackStatus.CookingAt, label: "Kitchen Cooking", icon: "🍳" },
+  { key: OrderTrackStatus.ReadyAt, label: "Ready to Serve", icon: "🔔" },
+  { key: OrderTrackStatus.BilledAt, label: "Bill Sent", icon: "🧾" },
+  { key: OrderTrackStatus.SettledAt, label: "Settled", icon: "✅" },
 ];
 
 const statusOrder = [
-  "placedAt",
-  "confirmedAt",
-  "cookingAt",
-  "readyAt",
-  "billedAt",
-  "settledAt",
+  OrderTrackStatus.PlacedAt,
+  OrderTrackStatus.CookingAt,
+  OrderTrackStatus.ConfirmedAt,
+  OrderTrackStatus.ReadyAt,
+  OrderTrackStatus.BilledAt,
+  OrderTrackStatus.SettledAt,
 ];
 
 function formatTime(dateStr: string | null) {
@@ -112,20 +113,20 @@ export default function OrderDrawer({
 
   const currentStatusKey = order
     ? {
-        NEW: "confirmedAt",
-        COOKING: "cookingAt",
-        READY: "readyAt",
-        BILLED: "billedAt",
-        SETTLED: "settledAt",
-      }[order.status] || "placedAt"
-    : "";
+        NEW: OrderTrackStatus.ConfirmedAt,
+        COOKING: OrderTrackStatus.CookingAt,
+        READY: OrderTrackStatus.ReadyAt,
+        BILLED: OrderTrackStatus.BilledAt,
+        SETTLED: OrderTrackStatus.SettledAt,
+      }[order.status] || OrderTrackStatus.PlacedAt
+    : OrderTrackStatus.PlacedAt;
   const currentIdx = statusOrder.indexOf(currentStatusKey);
 
   async function handleAction(nextStatus: string, label: string) {
     setActionLoading(true);
     try {
       const res = await apiFetch(`/api/orders/${input!.id}`, {
-        method: "PATCH",
+        method: RequestType.Patch,
         body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {
@@ -144,7 +145,7 @@ export default function OrderDrawer({
     setAssigningStaff(true);
     try {
       const res = await apiFetch(`/api/orders/${input!.id}`, {
-        method: "PATCH",
+        method: RequestType.Patch,
         body: JSON.stringify({ staffId: staffId || null }),
       });
       if (res.ok) {
@@ -318,7 +319,9 @@ export default function OrderDrawer({
                   {order.discount > 0 && (
                     <div className="mb-1.5 flex justify-between text-[13px]">
                       <span className="text-green-mid">Discount</span>
-                      <span className="font-mono text-green-mid">−₹{order.discount}</span>
+                      <span className="font-mono text-green-mid">
+                        −₹{order.discount}
+                      </span>
                     </div>
                   )}
                   <div className="mb-1.5 flex justify-between text-[13px]">

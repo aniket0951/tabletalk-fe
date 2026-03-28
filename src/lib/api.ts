@@ -1,36 +1,45 @@
 import { STORAGE_KEY } from "./storage-keys";
 import { ROUTES } from "./routes";
+import { Headers as HeadersConst } from "@/types/constants";
 
 // Backend URL — only used server-side (in API proxy route)
 // Socket.io still needs the public URL for direct WebSocket connection
 export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3004";
 
-export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function apiFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   // Ensure path starts with /api for the Next.js proxy
   const apiPath = path.startsWith("/api") ? path : `/api${path}`;
 
   const headers = new Headers(init?.headers);
 
   // Inject auth token from localStorage
-  if (!headers.has("Authorization") && typeof window !== "undefined") {
-    const isStaffRoute = apiPath.startsWith("/api/staff/auth") || apiPath.startsWith("/api/staff/orders");
+  if (
+    !headers.has(HeadersConst.Authorization) &&
+    typeof window !== "undefined"
+  ) {
+    const isStaffRoute =
+      apiPath.startsWith("/api/staff/auth") ||
+      apiPath.startsWith("/api/staff/orders");
     if (isStaffRoute) {
       const staffData = localStorage.getItem(STORAGE_KEY.STAFF);
       if (staffData) {
         try {
           const { token } = JSON.parse(staffData);
-          if (token) headers.set("Authorization", `Bearer ${token}`);
+          if (token) headers.set(HeadersConst.Authorization, `Bearer ${token}`);
         } catch {}
       }
     } else {
       const token = localStorage.getItem(STORAGE_KEY.TOKEN);
-      if (token) headers.set("Authorization", `Bearer ${token}`);
+      if (token) headers.set(HeadersConst.Authorization, `Bearer ${token}`);
     }
   }
 
   // Ensure Content-Type for JSON bodies
-  if (init?.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+  if (init?.body && !headers.has(HeadersConst.ContentType)) {
+    headers.set(HeadersConst.ContentType, "application/json");
   }
 
   // Call same-origin Next.js proxy — backend URL is hidden
@@ -55,14 +64,17 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   return res;
 }
 
-export async function publicFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function publicFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   // /public/menu/123 -> /api/public/menu/123 (goes through Next.js proxy)
   const apiPath = `/api${path}`;
 
   const headers = new Headers(init?.headers);
 
-  if (init?.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+  if (init?.body && !headers.has(HeadersConst.ContentType)) {
+    headers.set(HeadersConst.ContentType, "application/json");
   }
 
   return fetch(apiPath, {
@@ -103,12 +115,18 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
   return body;
 }
 
-export async function apiRequest<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
+export async function apiRequest<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<ApiResponse<T>> {
   const res = await apiFetch(path, init);
   return parseResponse<T>(res);
 }
 
-export async function publicRequest<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
+export async function publicRequest<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<ApiResponse<T>> {
   const res = await publicFetch(path, init);
   return parseResponse<T>(res);
 }

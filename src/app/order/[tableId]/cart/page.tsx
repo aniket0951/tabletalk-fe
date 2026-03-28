@@ -9,6 +9,7 @@ import { useTableInfo } from "../layout";
 import { publicFetch } from "@/lib/api";
 import { orderStatusRoute } from "@/lib/routes";
 import type { ApiOrder, PublicOffer } from "@/types";
+import { RequestType } from "@/types/constants";
 
 export default function CartPage({
   params,
@@ -37,8 +38,10 @@ export default function CartPage({
   useEffect(() => {
     if (!addToOrderId) return;
     publicFetch(`/public/orders/${addToOrderId}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((body) => { if (body?.data) setExistingOrder(body.data); })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (body?.data) setExistingOrder(body.data);
+      })
       .catch(() => {});
   }, [addToOrderId]);
 
@@ -46,8 +49,10 @@ export default function CartPage({
   useEffect(() => {
     if (!tableInfo?.restaurant.id) return;
     publicFetch(`/public/offers/${tableInfo.restaurant.id}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((body) => { if (body?.data) setOffers(body.data); })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (body?.data) setOffers(body.data);
+      })
       .catch(() => {});
   }, [tableInfo?.restaurant.id]);
 
@@ -59,13 +64,22 @@ export default function CartPage({
     const eligible = offers.filter((o) => {
       if (o.startDate && now < new Date(o.startDate)) return false;
       if (o.endDate && now > new Date(o.endDate)) return false;
-      if (o.daysOfWeek.length > 0 && !o.daysOfWeek.includes(now.getDay())) return false;
-      if (o.requiresCode && (!promoCode || promoCode.toUpperCase() !== promoCode)) return false;
+      if (o.daysOfWeek.length > 0 && !o.daysOfWeek.includes(now.getDay()))
+        return false;
+      if (
+        o.requiresCode &&
+        (!promoCode || promoCode.toUpperCase() !== promoCode)
+      )
+        return false;
       return true;
     });
 
     // Best bill discount
-    const billOffers = eligible.filter((o) => o.type === "BILL_DISCOUNT" && !o.requiresCode || (o.requiresCode && promoCode));
+    const billOffers = eligible.filter(
+      (o) =>
+        (o.type === "BILL_DISCOUNT" && !o.requiresCode) ||
+        (o.requiresCode && promoCode),
+    );
     let bestDisc = 0;
     let bestLabel = "";
 
@@ -73,9 +87,10 @@ export default function CartPage({
       if (o.requiresCode && !promoCode) continue;
       if (o.minOrderAmount != null && subtotal < o.minOrderAmount) continue;
 
-      let d = o.discountType === "PERCENTAGE"
-        ? Math.round(subtotal * (o.discountValue / 100) * 100) / 100
-        : o.discountValue;
+      let d =
+        o.discountType === "PERCENTAGE"
+          ? Math.round(subtotal * (o.discountValue / 100) * 100) / 100
+          : o.discountValue;
 
       if (o.discountType === "PERCENTAGE" && o.minOrderAmount == null) {
         // no cap needed beyond maxDiscount
@@ -84,9 +99,10 @@ export default function CartPage({
 
       if (d > bestDisc) {
         bestDisc = d;
-        bestLabel = o.discountType === "PERCENTAGE"
-          ? `${o.discountValue}% off on bill`
-          : `₹${o.discountValue} off on bill`;
+        bestLabel =
+          o.discountType === "PERCENTAGE"
+            ? `${o.discountValue}% off on bill`
+            : `₹${o.discountValue} off on bill`;
         if (o.requiresCode) bestLabel += ` (${promoCode})`;
       }
     }
@@ -110,7 +126,7 @@ export default function CartPage({
       if (addToOrderId) {
         // Add items to existing order — use phone from existing order
         res = await publicFetch(`/public/orders/${addToOrderId}/items`, {
-          method: "PATCH",
+          method: RequestType.Patch,
           body: JSON.stringify({
             customerPhone: existingOrder?.customerPhone || "",
             items: items.map((i) => ({
@@ -122,7 +138,7 @@ export default function CartPage({
       } else {
         // Create new order
         res = await publicFetch("/public/orders", {
-          method: "POST",
+          method: RequestType.Post,
           body: JSON.stringify({
             tableId,
             customerPhone: phone.trim(),
@@ -140,7 +156,9 @@ export default function CartPage({
       if (!res.ok) {
         const body = await res.json();
         if (body.code === "TABLE_OCCUPIED") {
-          setOrderError("This table is currently occupied. Please wait for the current order to be settled before placing a new one.");
+          setOrderError(
+            "This table is currently occupied. Please wait for the current order to be settled before placing a new one.",
+          );
         } else if (body.code === "ORDER_NOT_ADDABLE") {
           setOrderError(body.message);
         } else {
@@ -179,7 +197,9 @@ export default function CartPage({
     <div className="animate-fadeIn px-4 py-4">
       {orderError && (
         <div className="mb-4 rounded-[10px] border border-[#fca5a5] bg-[rgba(239,68,68,.08)] p-4">
-          <div className="mb-1 text-sm font-bold text-[#f87171]">Cannot place order</div>
+          <div className="mb-1 text-sm font-bold text-[#f87171]">
+            Cannot place order
+          </div>
           <div className="text-xs text-[#f87171]">{orderError}</div>
           <Link
             href={`/order/${tableId}`}
@@ -190,7 +210,10 @@ export default function CartPage({
         </div>
       )}
       <div className="mb-3 flex items-center gap-2">
-        <Link href={`/order/${tableId}`} className="text-sm text-accent font-semibold">
+        <Link
+          href={`/order/${tableId}`}
+          className="text-sm text-accent font-semibold"
+        >
           ← Menu
         </Link>
         <div className="text-sm font-bold">Your Cart</div>
@@ -212,10 +235,13 @@ export default function CartPage({
                       : "border-red bg-red"
                   }`}
                 />
-                <span className="truncate text-sm font-semibold">{item.name}</span>
+                <span className="truncate text-sm font-semibold">
+                  {item.name}
+                </span>
               </div>
               <div className="mt-0.5 text-xs text-text2">
-                ₹{item.price} × {item.quantity} = ₹{(item.price * item.quantity).toFixed(2)}
+                ₹{item.price} × {item.quantity} = ₹
+                {(item.price * item.quantity).toFixed(2)}
               </div>
             </div>
 
@@ -250,7 +276,9 @@ export default function CartPage({
       {/* Special notes — only for new orders */}
       {!addToOrderId && (
         <div className="mt-4">
-          <label className="mb-1 block text-xs font-semibold text-text2">Special Instructions</label>
+          <label className="mb-1 block text-xs font-semibold text-text2">
+            Special Instructions
+          </label>
           <textarea
             value={specialNote}
             onChange={(e) => setSpecialNote(e.target.value)}
@@ -265,7 +293,9 @@ export default function CartPage({
       {!addToOrderId && (
         <div className="mt-4 space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-text2">Phone Number *</label>
+            <label className="mb-1 block text-xs font-semibold text-text2">
+              Phone Number *
+            </label>
             <input
               type="tel"
               value={phone}
@@ -275,7 +305,9 @@ export default function CartPage({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-text2">Name (optional)</label>
+            <label className="mb-1 block text-xs font-semibold text-text2">
+              Name (optional)
+            </label>
             <input
               type="text"
               value={name}
@@ -290,7 +322,9 @@ export default function CartPage({
       {/* Promo Code */}
       {!addToOrderId && offers.some((o) => o.requiresCode) && (
         <div className="mt-4">
-          <label className="mb-1 block text-xs font-semibold text-text2">Promo Code</label>
+          <label className="mb-1 block text-xs font-semibold text-text2">
+            Promo Code
+          </label>
           <div className="flex gap-2">
             <input
               type="text"
@@ -308,8 +342,16 @@ export default function CartPage({
           </div>
           {promoCode && (
             <div className="mt-1 flex items-center gap-1 text-[11px] text-green-mid">
-              <span>Code "{promoCode}" applied</span>
-              <button onClick={() => { setPromoCode(""); setPromoInput(""); }} className="text-red underline">Remove</button>
+              <span>Code &quot;{promoCode}&quot; applied</span>
+              <button
+                onClick={() => {
+                  setPromoCode("");
+                  setPromoInput("");
+                }}
+                className="text-red underline"
+              >
+                Remove
+              </button>
             </div>
           )}
         </div>
@@ -318,11 +360,16 @@ export default function CartPage({
       {/* Available offers banner */}
       {offers.length > 0 && discount.amount === 0 && (
         <div className="mt-4 rounded-[10px] border border-accent-border bg-accent-bg px-3 py-2">
-          <div className="text-[11px] font-semibold text-accent">Available Offers</div>
+          <div className="text-[11px] font-semibold text-accent">
+            Available Offers
+          </div>
           <div className="mt-1 space-y-0.5">
             {offers.slice(0, 3).map((o) => (
               <div key={o.id} className="text-[11px] text-text2">
-                🏷 {o.name} — {o.discountType === "PERCENTAGE" ? `${o.discountValue}% off` : `₹${o.discountValue} off`}
+                🏷 {o.name} —{" "}
+                {o.discountType === "PERCENTAGE"
+                  ? `${o.discountValue}% off`
+                  : `₹${o.discountValue} off`}
                 {o.minOrderAmount ? ` (min ₹${o.minOrderAmount})` : ""}
                 {o.requiresCode ? " · Code required" : ""}
               </div>
@@ -340,7 +387,9 @@ export default function CartPage({
         {discount.amount > 0 && (
           <div className="mt-1 flex justify-between text-sm">
             <span className="text-green-mid">{discount.label}</span>
-            <span className="text-green-mid">−₹{discount.amount.toFixed(2)}</span>
+            <span className="text-green-mid">
+              −₹{discount.amount.toFixed(2)}
+            </span>
           </div>
         )}
         <div className="mt-1 flex justify-between text-sm">
@@ -360,8 +409,12 @@ export default function CartPage({
         className="mt-4 w-full rounded-xl bg-accent py-3 text-sm font-bold text-white transition-all hover:bg-accent2 disabled:opacity-50"
       >
         {placing
-          ? addToOrderId ? "Adding Items..." : "Placing Order..."
-          : addToOrderId ? `Add Items · ₹${total.toFixed(2)}` : `Place Order · ₹${total.toFixed(2)}`}
+          ? addToOrderId
+            ? "Adding Items..."
+            : "Placing Order..."
+          : addToOrderId
+            ? `Add Items · ₹${total.toFixed(2)}`
+            : `Place Order · ₹${total.toFixed(2)}`}
       </button>
 
       <div className="mt-2 text-center text-[11px] text-text3">

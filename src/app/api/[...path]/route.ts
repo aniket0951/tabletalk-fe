@@ -1,3 +1,4 @@
+import { RequestType } from "@/types/constants";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.API_URL || "http://localhost:3004";
@@ -9,7 +10,7 @@ async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
   const url = `${BACKEND_URL}${backendPath}${search}`;
 
   const body =
-    req.method !== "GET" && req.method !== "HEAD"
+    req.method !== RequestType.Get && req.method !== RequestType.Head
       ? await req.text()
       : undefined;
 
@@ -33,22 +34,37 @@ async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
   }
 }
 
-export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function GET(
+  req: NextRequest,
+  ctx: { params: Promise<{ path: string[] }> },
+) {
   return proxy(req, ctx.params);
 }
 
-export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function POST(
+  req: NextRequest,
+  ctx: { params: Promise<{ path: string[] }> },
+) {
   return proxy(req, ctx.params);
 }
 
-export async function PATCH(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function PATCH(
+  req: NextRequest,
+  ctx: { params: Promise<{ path: string[] }> },
+) {
   return proxy(req, ctx.params);
 }
 
-export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function PUT(
+  req: NextRequest,
+  ctx: { params: Promise<{ path: string[] }> },
+) {
   return proxy(req, ctx.params);
 }
 
-export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function DELETE(
+  req: NextRequest,
+  ctx: { params: Promise<{ path: string[] }> },
+) {
   return proxy(req, ctx.params);
 }
