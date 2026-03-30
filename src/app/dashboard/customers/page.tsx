@@ -275,59 +275,53 @@ export default function CustomersPage() {
           </div>
 
           {/* Tab Bar */}
-          <div className="border-b border-border bg-surface px-4 sm:px-6">
-            <div className="flex gap-1 overflow-x-auto">
+          <div className="flex gap-1 overflow-x-auto px-4 pt-4 sm:px-6">
             {STATUS_TABS.map((status) => {
               const cfg = tabConfig[status];
               const isActive = activeTab === status;
               const isFetching = loadingTab === status;
-              const orders = tabOrders[status];
-              const count = orders?.length;
-
+              const count = tabOrders[status]?.length;
               return (
                 <button
                   key={status}
                   onClick={() => handleTabSwitch(status)}
-                  className={`relative flex shrink-0 items-center gap-[7px] rounded-t-[8px] px-3 py-2.5 text-[12px] font-semibold transition-all ${
+                  className={`flex shrink-0 items-center gap-1.5 rounded-t-[8px] border border-b-0 px-3 py-[7px] text-[11px] font-semibold transition-all ${
                     isActive
-                      ? "bg-accent-bg text-accent shadow-[inset_0_-2px_0_0] shadow-accent"
-                      : "text-text3 hover:text-text2 hover:bg-surface2"
+                      ? "border-border bg-surface text-text shadow-[inset_0_-2px_0_0_var(--color-accent)]"
+                      : "border-transparent bg-surface2/60 text-text3 hover:bg-surface2 hover:text-text2"
                   }`}
                 >
-                  <span className="text-[13px]">{cfg.icon}</span>
+                  <span>{cfg.icon}</span>
                   <span>{cfg.label}</span>
                   {isFetching ? (
-                    <span className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-accent border-t-transparent" />
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-t-transparent opacity-60" />
                   ) : count !== undefined ? (
-                    <span className={`min-w-[18px] rounded-full px-1.5 py-px text-center font-mono text-[9px] font-bold leading-[14px] ${
-                      isActive ? "bg-accent text-white" : "bg-border2 text-text3"
-                    }`}>
+                    <span className={`min-w-[18px] rounded-full px-1 py-[1px] text-center font-mono text-[9px] font-bold ${isActive ? "bg-accent text-white" : "bg-border text-text3"}`}>
                       {count}
                     </span>
                   ) : null}
                 </button>
               );
             })}
-            </div>
           </div>
 
           {/* Tab Content */}
-          <div className="px-4 py-4 sm:px-6">
-            {loadingTab === activeTab ? (
-              <div className="flex items-center justify-center py-10 gap-2 text-sm text-text3">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                Loading orders...
-              </div>
-            ) : !tabOrders[activeTab] ? (
-              <div className="py-10 text-center text-sm text-text3">Loading...</div>
-            ) : tabOrders[activeTab]!.length === 0 ? (
-              <div className="py-10 text-center">
-                <div className="mb-1 text-xl">{tabConfig[activeTab].icon}</div>
-                <div className="text-sm text-text3">No {tabConfig[activeTab].label.toLowerCase()} orders for this customer</div>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
-                {tabOrders[activeTab]!.map((order) => (
+          <div className="px-4 pb-4 sm:px-6">
+            <div className="overflow-hidden rounded-b-[10px] rounded-tr-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+              {loadingTab === activeTab ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-text3">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  Loading orders...
+                </div>
+              ) : !tabOrders[activeTab] ? (
+                <div className="py-10 text-center text-sm text-text3">Loading...</div>
+              ) : tabOrders[activeTab]!.length === 0 ? (
+                <div className="py-10 text-center">
+                  <div className="mb-1 text-xl">{tabConfig[activeTab].icon}</div>
+                  <div className="text-sm text-text3">No {tabConfig[activeTab].label.toLowerCase()} orders for this customer</div>
+                </div>
+              ) : (
+                tabOrders[activeTab]!.map((order) => (
                   <div
                     key={order.id}
                     onClick={() => setSelectedSummary(order)}
@@ -351,9 +345,9 @@ export default function CustomersPage() {
                     </div>
                     <span className="text-[10px] text-text3">→</span>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
