@@ -26,3 +26,13 @@ export function useTrialDays() { return useContext(TrialDaysContext); }
 
 export const RestaurantContext = createContext<RestaurantData | null>(null);
 export function useRestaurant() { return useContext(RestaurantContext); }
+
+export interface BranchSummary {
+  id: string;
+  name: string;
+  city: string;
+  serviceMode: string;
+}
+
+export const BranchesContext = createContext<BranchSummary[]>([]);
+export function useBranches() { return useContext(BranchesContext); }

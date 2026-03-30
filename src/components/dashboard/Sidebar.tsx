@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
+import type { BranchSummary } from "@/app/dashboard/contexts";
 
 const mainNav = [
   { icon: "◈", label: "Dashboard", href: "/dashboard" },
@@ -31,11 +33,28 @@ interface SidebarProps {
   activeOrderCount: number;
   open: boolean;
   onClose: () => void;
+  branches: BranchSummary[];
+  activeBranchId: string;
+  onSwitchBranch: (id: string) => void;
+  onAddBranch: () => void;
 }
 
-export default function Sidebar({ restName, subscriptionPlan, subscriptionStatus, trialDaysLeft, activeOrderCount, open, onClose }: SidebarProps) {
+export default function Sidebar({
+  restName,
+  subscriptionPlan,
+  subscriptionStatus,
+  trialDaysLeft,
+  activeOrderCount,
+  open,
+  onClose,
+  branches,
+  activeBranchId,
+  onSwitchBranch,
+  onAddBranch,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
 
   function handleLogout() {
     localStorage.clear();
@@ -47,11 +66,19 @@ export default function Sidebar({ restName, subscriptionPlan, subscriptionStatus
     return pathname.startsWith(href);
   }
 
+  const isMulti = subscriptionPlan === "MULTI";
+  const canAddBranch = isMulti && branches.length < 5;
+
   return (
     <>
       {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 z-150 bg-black/40 backdrop-blur-[2px] md:hidden" onClick={onClose} />
+      )}
+
+      {/* Branch dropdown backdrop */}
+      {branchMenuOpen && (
+        <div className="fixed inset-0 z-[190]" onClick={() => setBranchMenuOpen(false)} />
       )}
 
       <aside className={`fixed bottom-0 left-0 top-0 z-200 flex w-[220px] flex-col bg-text transition-transform duration-300 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
@@ -97,30 +124,80 @@ export default function Sidebar({ restName, subscriptionPlan, subscriptionStatus
         </nav>
 
         <div className="border-t border-white/[0.07] px-[10px] py-3">
-          <div className="flex items-center gap-2 rounded-lg bg-white/[0.06] px-[10px] py-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[13px]">🏠</div>
-            <div className="min-w-0">
-              <div className="truncate text-xs font-semibold text-white">{restName}</div>
-              {subscriptionPlan ? (
-                <>
-                  <div className="mt-[3px] inline-block rounded-[5px] bg-[rgba(34,197,94,.2)] px-[7px] py-[2px] font-mono text-[9px] font-bold tracking-[0.08em] text-[#4ade80]">● {subscriptionPlan} PLAN</div>
-                  {subscriptionStatus === "TRIAL" && trialDaysLeft != null && (
-                    <div className={`mt-[3px] font-mono text-[9px] font-bold tracking-[0.04em] ${trialDaysLeft <= 3 ? "text-[#fbbf24]" : "text-white/40"}`}>
-                      {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left in trial
-                    </div>
-                  )}
-                  {subscriptionStatus === "ACTIVE" && trialDaysLeft != null && (
-                    <div className={`mt-[3px] font-mono text-[9px] font-bold tracking-[0.04em] ${trialDaysLeft <= 7 ? "text-[#fbbf24]" : "text-white/40"}`}>
-                      renews in {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="mt-[3px] inline-block rounded-[5px] bg-[rgba(239,68,68,.2)] px-[7px] py-[2px] font-mono text-[9px] font-bold tracking-[0.08em] text-[#f87171]">✕ NO SUBSCRIPTION</div>
+          {/* Branch switcher */}
+          <div className="relative mb-2">
+            <button
+              onClick={() => setBranchMenuOpen((v) => !v)}
+              className="flex w-full items-center gap-2 rounded-lg bg-white/[0.06] px-[10px] py-2 transition-all hover:bg-white/[0.1]"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[13px]">🏠</div>
+              <div className="min-w-0 flex-1 text-left">
+                <div className="truncate text-xs font-semibold text-white">{restName}</div>
+                {subscriptionPlan ? (
+                  <>
+                    <div className="mt-[3px] inline-block rounded-[5px] bg-[rgba(34,197,94,.2)] px-[7px] py-[2px] font-mono text-[9px] font-bold tracking-[0.08em] text-[#4ade80]">● {subscriptionPlan} PLAN</div>
+                    {subscriptionStatus === "TRIAL" && trialDaysLeft != null && (
+                      <div className={`mt-[3px] font-mono text-[9px] font-bold tracking-[0.04em] ${trialDaysLeft <= 3 ? "text-[#fbbf24]" : "text-white/40"}`}>
+                        {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left in trial
+                      </div>
+                    )}
+                    {subscriptionStatus === "ACTIVE" && trialDaysLeft != null && (
+                      <div className={`mt-[3px] font-mono text-[9px] font-bold tracking-[0.04em] ${trialDaysLeft <= 7 ? "text-[#fbbf24]" : "text-white/40"}`}>
+                        renews in {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="mt-[3px] inline-block rounded-[5px] bg-[rgba(239,68,68,.2)] px-[7px] py-[2px] font-mono text-[9px] font-bold tracking-[0.08em] text-[#f87171]">✕ NO SUBSCRIPTION</div>
+                )}
+              </div>
+              {branches.length > 1 && (
+                <span className={`shrink-0 font-mono text-[10px] text-white/40 transition-transform ${branchMenuOpen ? "rotate-180" : ""}`}>▾</span>
               )}
-            </div>
+            </button>
+
+            {/* Branch dropdown */}
+            {branchMenuOpen && (
+              <div className="absolute bottom-full left-0 right-0 z-[210] mb-1 overflow-hidden rounded-[10px] border border-white/[0.1] bg-[#1c1917] shadow-[0_8px_30px_rgba(0,0,0,.4)] animate-slideUp">
+                <div className="px-3 pb-1 pt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-white/30">Your Branches</div>
+                {branches.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => { setBranchMenuOpen(false); onSwitchBranch(b.id); }}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-all hover:bg-white/[0.07] ${b.id === activeBranchId ? "text-white" : "text-white/50"}`}
+                  >
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${b.id === activeBranchId ? "bg-accent" : "bg-white/20"}`} />
+                    <span className="min-w-0 flex-1 truncate font-medium">{b.name}</span>
+                    {b.city && <span className="shrink-0 font-mono text-[10px] text-white/30">{b.city}</span>}
+                    {b.id === activeBranchId && <span className="shrink-0 font-mono text-[9px] text-accent">●</span>}
+                  </button>
+                ))}
+                <div className="border-t border-white/[0.07] p-1.5">
+                  {canAddBranch ? (
+                    <button
+                      onClick={() => { setBranchMenuOpen(false); onAddBranch(); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-white/50 transition-all hover:bg-white/[0.07] hover:text-white"
+                    >
+                      <span className="text-sm">＋</span> Add Branch
+                      <span className="ml-auto font-mono text-[9px] text-white/25">{branches.length}/5</span>
+                    </button>
+                  ) : isMulti ? (
+                    <div className="px-3 py-2 font-mono text-[9px] text-white/30">Branch limit reached (5/5)</div>
+                  ) : (
+                    <button
+                      onClick={() => { setBranchMenuOpen(false); onAddBranch(); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-white/30 transition-all hover:bg-white/[0.07]"
+                    >
+                      <span className="text-sm">＋</span> Add Branch
+                      <span className="ml-auto rounded-[4px] bg-[rgba(212,82,42,.2)] px-1.5 py-[1px] font-mono text-[8px] font-bold text-accent">MULTI</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="mt-2 px-1">
+
+          <div className="px-1">
             <button onClick={handleLogout} className="flex w-full items-center justify-start rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-white/40 transition-all hover:bg-white/[0.07] hover:text-red">⏻ Logout</button>
           </div>
         </div>
