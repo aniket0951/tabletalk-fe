@@ -99,6 +99,7 @@ export default function DashboardOverview() {
 
   useSocketEvent(SOCKET_EVENT.ORDER_CREATED, handleOrderCreated);
   useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdated);
+  useSocketEvent(SOCKET_EVENT.TABLE_UPDATED, refreshStats);
 
   function openOrder(order: ApiOrderSummary) {
     setSelectedSummary(order);
