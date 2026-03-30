@@ -313,7 +313,7 @@ export default function OffersPage() {
                     {statsLoadingId === offer.id ? "Loading…" : "Stats"}
                     {statsLoadingId === offer.id && (
                       <span className="absolute bottom-0 left-0 h-[2px] w-full overflow-hidden bg-border">
-                        <span className="animate-loading-bar absolute inset-y-0 w-1/3 bg-accent" />
+                        <span className="animate-loading-bar absolute inset-y-0 left-0 w-1/3 bg-accent" />
                       </span>
                     )}
                   </button>
