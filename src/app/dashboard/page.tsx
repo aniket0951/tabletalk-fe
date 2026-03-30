@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/shared/Skeleton";
 import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { SOCKET_EVENT } from "@/lib/events";
+import { useStaffList } from "@/hooks/useStaffList";
 import type { ApiOrderSummary, ApiOrder, DashboardStats } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
@@ -28,6 +29,7 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const toggleSidebar = useSidebarToggle();
+  const { staffList } = useStaffList();
 
   useEffect(() => {
     async function load() {
@@ -289,6 +291,7 @@ export default function DashboardOverview() {
         <OrderDrawer
           order={selectedSummary}
           onClose={() => setSelectedSummary(null)}
+          staffList={staffList}
         />
       )}
     </>
