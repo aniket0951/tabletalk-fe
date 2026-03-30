@@ -167,7 +167,7 @@ export default function Sidebar({
                     className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-all hover:bg-white/[0.07] ${b.id === activeBranchId ? "text-white" : "text-white/50"}`}
                   >
                     <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${b.id === activeBranchId ? "bg-accent" : "bg-white/20"}`} />
-                    <span className="min-w-0 flex-1 truncate font-medium">{b.name}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium">{b.branchAlias || b.name}</span>
                     {b.city && <span className="shrink-0 font-mono text-[10px] text-white/30">{b.city}</span>}
                     {b.id === activeBranchId && <span className="shrink-0 font-mono text-[9px] text-accent">●</span>}
                   </button>

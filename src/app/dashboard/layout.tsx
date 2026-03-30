@@ -114,6 +114,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const [addBranchName, setAddBranchName] = useState("");
   const [addBranchPhone, setAddBranchPhone] = useState("");
   const [addBranchCity, setAddBranchCity] = useState("");
+  const [addBranchAlias, setAddBranchAlias] = useState("");
   const [addBranchMode, setAddBranchMode] = useState("DINE_IN");
   const [addBranchSaving, setAddBranchSaving] = useState(false);
   const [addBranchError, setAddBranchError] = useState("");
@@ -179,6 +180,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           name: addBranchName.trim(),
           phone: addBranchPhone.trim(),
           city: addBranchCity.trim(),
+          branchAlias: addBranchAlias.trim(),
           serviceMode: addBranchMode,
         }),
       });
@@ -203,6 +205,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       setAddBranchName("");
       setAddBranchPhone("");
       setAddBranchCity("");
+      setAddBranchAlias("");
       setAddBranchMode("DINE_IN");
       setAddBranchError("Upgrade to the Multi plan to add multiple branches.");
       setAddBranchOpen(true);
@@ -216,6 +219,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     setAddBranchName("");
     setAddBranchPhone("");
     setAddBranchCity("");
+    setAddBranchAlias("");
     setAddBranchMode("DINE_IN");
     setAddBranchError("");
     setAddBranchOpen(true);
@@ -298,6 +302,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   placeholder="e.g. Bangalore"
                   value={addBranchCity}
                   onChange={(e) => setAddBranchCity(e.target.value)}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="mb-[5px] block text-xs font-semibold text-text2">Branch Alias <span className="font-normal text-text3">(optional short name)</span></label>
+                <input
+                  className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent"
+                  placeholder="e.g. KRM, BTM"
+                  value={addBranchAlias}
+                  onChange={(e) => setAddBranchAlias(e.target.value)}
                 />
               </div>
               <div>

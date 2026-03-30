@@ -313,7 +313,8 @@ export default function SettingsPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-[13px] font-semibold">{b.name}</span>
+                              <span className="text-[13px] font-semibold">{b.branchAlias || b.name}</span>
+                              {b.branchAlias && <span className="font-mono text-[10px] text-text3">{b.name}</span>}
                               {isActive && (
                                 <span className="rounded-[4px] bg-accent-bg px-[6px] py-[2px] font-mono text-[9px] font-bold text-accent">ACTIVE</span>
                               )}
