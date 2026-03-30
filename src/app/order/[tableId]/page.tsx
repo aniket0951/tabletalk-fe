@@ -37,9 +37,9 @@ export default function MenuPage({
   const [checkingOrder, setCheckingOrder] = useState(true);
   const [phoneLookup, setPhoneLookup] = useState("");
   const [phoneLookupLoading, setPhoneLookupLoading] = useState(false);
-  const [phoneLookupResult, setPhoneLookupResult] = useState<ApiOrder[] | null>(
-    null,
-  );
+  const [phoneLookupResult, setPhoneLookupResult] = useState<ApiOrder[] | null>(null);
+  const [orderHistory, setOrderHistory] = useState<ApiOrder[] | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -169,6 +169,7 @@ export default function MenuPage({
   async function lookupByPhone() {
     if (!phoneLookup.trim()) return;
     setPhoneLookupLoading(true);
+    setOrderHistory(null);
     try {
       const res = await publicFetch(
         `/public/orders/active-by-phone/${encodeURIComponent(phoneLookup.trim())}`,
@@ -179,6 +180,21 @@ export default function MenuPage({
       setPhoneLookupResult([]);
     }
     setPhoneLookupLoading(false);
+  }
+
+  async function loadOrderHistory() {
+    if (!phoneLookup.trim()) return;
+    setHistoryLoading(true);
+    try {
+      const res = await publicFetch(
+        `/public/orders/history/${encodeURIComponent(phoneLookup.trim())}?limit=10`,
+      );
+      const body = await res.json();
+      setOrderHistory(body.data?.orders || []);
+    } catch {
+      setOrderHistory([]);
+    }
+    setHistoryLoading(false);
   }
 
   const getItemQty = (menuItemId: string) =>
@@ -290,6 +306,7 @@ export default function MenuPage({
               onChange={(e) => {
                 setPhoneLookup(e.target.value);
                 setPhoneLookupResult(null);
+                setOrderHistory(null);
               }}
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-text3 focus:border-accent"
             />
@@ -302,10 +319,17 @@ export default function MenuPage({
             </button>
           </div>
           {phoneLookupResult !== null && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
               {phoneLookupResult.length === 0 ? (
-                <div className="text-xs text-text3">
-                  No active orders found for this number
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-text3">No active orders found</div>
+                  <button
+                    onClick={loadOrderHistory}
+                    disabled={historyLoading}
+                    className="text-xs font-semibold text-accent underline-offset-2 hover:underline disabled:opacity-50"
+                  >
+                    {historyLoading ? "Loading..." : "See order history →"}
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -319,9 +343,7 @@ export default function MenuPage({
                         <div className="text-xs font-bold">
                           {o.orderCode} · {o.table?.label}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-text2">
-                          ₹{o.total}
-                        </div>
+                        <div className="mt-0.5 text-[11px] text-text2">₹{o.total}</div>
                       </div>
                       <span
                         className={`rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold ${
@@ -336,6 +358,50 @@ export default function MenuPage({
                       </span>
                     </Link>
                   ))}
+                  <button
+                    onClick={loadOrderHistory}
+                    disabled={historyLoading}
+                    className="w-full pt-1 text-center text-xs font-semibold text-text3 hover:text-accent disabled:opacity-50"
+                  >
+                    {historyLoading ? "Loading..." : "View order history →"}
+                  </button>
+                </div>
+              )}
+
+              {/* Order history */}
+              {orderHistory !== null && (
+                <div className="mt-1 border-t border-border pt-2">
+                  <div className="mb-1.5 text-[11px] font-semibold text-text3 uppercase tracking-wide">
+                    Past Orders
+                  </div>
+                  {orderHistory.length === 0 ? (
+                    <div className="text-xs text-text3">No past orders found</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {orderHistory.map((o) => (
+                        <Link
+                          key={o.id}
+                          href={`/order/${tableId}/status/${o.id}`}
+                          className="flex items-center justify-between rounded-lg border border-border bg-surface2 p-3 transition-all hover:border-accent hover:bg-accent-bg"
+                        >
+                          <div>
+                            <div className="text-xs font-bold">{o.orderCode}</div>
+                            <div className="mt-0.5 text-[11px] text-text3">
+                              {new Date(o.placedAt).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                              {" · "}₹{o.total}
+                            </div>
+                          </div>
+                          <span className="rounded-[5px] bg-surface px-2 py-[3px] font-mono text-[10px] font-bold text-text3">
+                            {o.status}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
