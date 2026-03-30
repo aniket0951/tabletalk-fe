@@ -5,15 +5,20 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
-import { useSidebarToggle } from "../contexts";
+import { useSidebarToggle, useRestaurant, useBranches, useSubscriptionPlan } from "../contexts";
 import { apiFetch } from "@/lib/api";
 import { cachedFetch, clearCache, TTL } from "@/lib/cache";
 import { RequestType } from "@/types/constants";
+import { useBranchSwitch } from "@/hooks/useBranchSwitch";
 
 export default function SettingsPage() {
   const toggleSidebar = useSidebarToggle();
   const router = useRouter();
   const { showToast } = useToast();
+  const restaurant = useRestaurant();
+  const branches = useBranches();
+  const plan = useSubscriptionPlan();
+  const { switchBranch, switching } = useBranchSwitch();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
@@ -288,6 +293,55 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Branches */}
+              {branches.length > 0 && (
+                <div className="mt-[14px] overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+                  <div className="flex items-center justify-between border-b border-border px-[18px] py-[14px]">
+                    <div className="text-[13px] font-semibold">Branches</div>
+                    <span className="font-mono text-[11px] text-text3">
+                      {branches.length} / {plan === "MULTI" ? "5" : "1"}
+                    </span>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {branches.map((b) => {
+                      const isActive = b.id === restaurant?.id;
+                      return (
+                        <div key={b.id} className="flex items-center gap-3 px-[18px] py-3">
+                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] text-sm ${isActive ? "bg-accent-bg text-accent" : "bg-surface2 text-text3"}`}>
+                            🏠
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[13px] font-semibold">{b.name}</span>
+                              {isActive && (
+                                <span className="rounded-[4px] bg-accent-bg px-[6px] py-[2px] font-mono text-[9px] font-bold text-accent">ACTIVE</span>
+                              )}
+                            </div>
+                            <div className="mt-[2px] font-mono text-[11px] text-text3">
+                              {[b.city, b.serviceMode === "DINE_IN" ? "Dine-In" : "Walk-In"].filter(Boolean).join(" · ")}
+                            </div>
+                          </div>
+                          {!isActive && (
+                            <button
+                              onClick={() => switchBranch(b.id)}
+                              disabled={switching === b.id}
+                              className="shrink-0 rounded-[7px] border border-border bg-transparent px-[11px] py-[5px] text-[11px] font-semibold text-text2 transition-all hover:border-accent hover:bg-accent-bg hover:text-accent disabled:opacity-50"
+                            >
+                              {switching === b.id ? (
+                                <span className="flex items-center gap-1">
+                                  <span className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-accent border-t-transparent" />
+                                  Switching…
+                                </span>
+                              ) : "Switch →"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
