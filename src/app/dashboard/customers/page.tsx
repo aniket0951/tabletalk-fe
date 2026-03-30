@@ -274,39 +274,37 @@ export default function CustomersPage() {
             </div>
           </div>
 
-          {/* Tab Bar */}
-          <div className="flex gap-1 overflow-x-auto px-4 pt-4 sm:px-6">
-            {STATUS_TABS.map((status) => {
-              const cfg = tabConfig[status];
-              const isActive = activeTab === status;
-              const isFetching = loadingTab === status;
-              const count = tabOrders[status]?.length;
-              return (
-                <button
-                  key={status}
-                  onClick={() => handleTabSwitch(status)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-t-[8px] border border-b-0 px-3 py-[7px] text-[11px] font-semibold transition-all ${
-                    isActive
-                      ? "border-border bg-surface text-text shadow-[inset_0_-2px_0_0_var(--color-accent)]"
-                      : "border-transparent bg-surface2/60 text-text3 hover:bg-surface2 hover:text-text2"
-                  }`}
-                >
-                  <span>{cfg.icon}</span>
-                  <span>{cfg.label}</span>
-                  {isFetching ? (
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-t-transparent opacity-60" />
-                  ) : count !== undefined ? (
-                    <span className={`min-w-[18px] rounded-full px-1 py-[1px] text-center font-mono text-[9px] font-bold ${isActive ? "bg-accent text-white" : "bg-border text-text3"}`}>
-                      {count}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Tab Content */}
-          <div className="px-4 pb-4 sm:px-6">
+          {/* Tab Bar + Content */}
+          <div className="px-4 py-4 sm:px-6">
+            <div className="flex gap-1 overflow-x-auto">
+              {STATUS_TABS.map((status) => {
+                const cfg = tabConfig[status];
+                const isActive = activeTab === status;
+                const isFetching = loadingTab === status;
+                const count = tabOrders[status]?.length;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => handleTabSwitch(status)}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-t-[8px] border border-b-0 px-3 py-[7px] text-[11px] font-semibold transition-all ${
+                      isActive
+                        ? "border-border bg-surface text-text shadow-[inset_0_-2px_0_0_var(--color-accent)]"
+                        : "border-transparent bg-surface2/60 text-text3 hover:bg-surface2 hover:text-text2"
+                    }`}
+                  >
+                    <span>{cfg.icon}</span>
+                    <span>{cfg.label}</span>
+                    {isFetching ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-t-transparent opacity-60" />
+                    ) : count !== undefined ? (
+                      <span className={`min-w-[18px] rounded-full px-1 py-[1px] text-center font-mono text-[9px] font-bold ${isActive ? "bg-accent text-white" : "bg-border text-text3"}`}>
+                        {count}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
             <div className="overflow-hidden rounded-b-[10px] rounded-tr-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
               {loadingTab === activeTab ? (
                 <div className="flex items-center justify-center gap-2 py-10 text-sm text-text3">
