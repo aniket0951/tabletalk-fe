@@ -74,7 +74,8 @@ export default function DashboardOverview() {
       table: o.table,
       _count: { items: o.items?.length ?? 0 },
       staffId: o.staffId,
-    } as ApiOrderSummary;
+      staff: o.staff ?? null,
+    } as unknown as ApiOrderSummary;
   }
 
   function refreshStats() {
