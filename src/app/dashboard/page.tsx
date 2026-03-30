@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import Topbar from "@/components/dashboard/Topbar";
@@ -8,7 +8,9 @@ import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useSidebarToggle } from "./contexts";
 import { apiFetch } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/shared/Skeleton";
-import type { ApiOrderSummary, DashboardStats } from "@/types";
+import { useSocketEvent } from "@/hooks/useSocketEvent";
+import { SOCKET_EVENT } from "@/lib/events";
+import type { ApiOrderSummary, ApiOrder, DashboardStats } from "@/types";
 
 const statusMap: Record<string, { cls: string; label: string }> = {
   NEW: { cls: "bg-new-bg text-accent", label: "NEW" },
@@ -54,6 +56,46 @@ export default function DashboardOverview() {
     }
     load();
   }, []);
+
+  function toSummary(o: ApiOrder): ApiOrderSummary {
+    return {
+      id: o.id,
+      orderCode: o.orderCode,
+      status: o.status,
+      total: o.total,
+      subtotal: o.subtotal,
+      discount: o.discount,
+      tax: o.tax,
+      placedAt: o.placedAt,
+      customerPhone: o.customerPhone,
+      customerName: o.customerName,
+      table: o.table,
+      _count: { items: o.items?.length ?? 0 },
+      staffId: o.staffId,
+    } as ApiOrderSummary;
+  }
+
+  function refreshStats() {
+    apiFetch("/api/dashboard/stats")
+      .then((r) => r.json())
+      .then((body) => { if (body.data) setStats(body.data as DashboardStats); })
+      .catch(() => {});
+  }
+
+  const handleOrderCreated = useCallback((created: ApiOrder) => {
+    setOrders((prev) => [toSummary(created), ...prev]);
+    refreshStats();
+  }, []);
+
+  const handleOrderUpdated = useCallback((updated: ApiOrder) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === updated.id ? toSummary(updated) : o)),
+    );
+    if (updated.status === "SETTLED") refreshStats();
+  }, []);
+
+  useSocketEvent(SOCKET_EVENT.ORDER_CREATED, handleOrderCreated);
+  useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleOrderUpdated);
 
   function openOrder(order: ApiOrderSummary) {
     setSelectedSummary(order);
