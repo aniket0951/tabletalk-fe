@@ -31,9 +31,12 @@ export default function StaffPage() {
   const [formError, setFormError] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<ApiStaff | null>(null);
-  const [staffOrders, setStaffOrders] = useState<ApiOrderSummary[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
-  const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
+  type OrderStatusTab = "NEW" | "COOKING" | "READY" | "BILLED" | "SETTLED";
+  const [activeTab, setActiveTab] = useState<OrderStatusTab>("NEW");
+  const [tabOrders, setTabOrders] = useState<
+    Partial<Record<OrderStatusTab, ApiOrderSummary[]>>
+  >({});
+  const [loadingTab, setLoadingTab] = useState<OrderStatusTab | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ApiOrderSummary | null>(
     null,
   );
@@ -128,7 +131,6 @@ export default function StaffPage() {
     setDeletingId(null);
   }
 
-  const statusGroups = ["NEW", "COOKING", "READY", "BILLED", "SETTLED"];
   const statusConfig: Record<
     string,
     { label: string; icon: string; cls: string }
@@ -172,31 +174,40 @@ export default function StaffPage() {
     return { from: todayStr, to: todayStr };
   }
 
-  function fetchStaffOrders(staffId: string, filter: string) {
-    setStaffOrders([]);
-    setExpandedStatus(null);
-    setLoadingOrders(true);
-    const { from, to } = getDateRange(filter);
-    const params = new URLSearchParams({ staffId });
+  async function fetchTabOrders(
+    staffId: string,
+    status: OrderStatusTab,
+    filter: string,
+    fromDate?: string,
+    toDate?: string,
+  ) {
+    setLoadingTab(status);
+    const { from, to } =
+      filter === "custom"
+        ? { from: fromDate ?? "", to: toDate ?? "" }
+        : getDateRange(filter);
+    const params = new URLSearchParams({ staffId, status });
     if (from) params.set("from", from);
     if (to) params.set("to", to);
-    apiFetch(`/api/orders?${params}`)
-      .then((r) => r.json())
-      .then((body) => {
-        const d = body.data;
-        const orders = Array.isArray(d)
-          ? d
-          : Array.isArray(d?.orders)
-            ? d.orders
-            : [];
-        setStaffOrders(orders);
-        const first = statusGroups.find((st) =>
-          orders.some((o: ApiOrderSummary) => o.status === st),
-        );
-        setExpandedStatus(first || null);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingOrders(false));
+    try {
+      const r = await apiFetch(`/api/orders?${params}`);
+      const body = await r.json();
+      const d = body.data;
+      const orders = Array.isArray(d)
+        ? d
+        : Array.isArray(d?.orders)
+          ? d.orders
+          : [];
+      setTabOrders((prev) => ({ ...prev, [status]: orders }));
+    } catch {}
+    setLoadingTab(null);
+  }
+
+  function handleTabSwitch(status: OrderStatusTab) {
+    setActiveTab(status);
+    if (tabOrders[status] === undefined && selectedStaff) {
+      fetchTabOrders(selectedStaff.id, status, dateFilter, customFrom, customTo);
+    }
   }
 
   function openStaffOrders(s: ApiStaff) {
@@ -204,33 +215,42 @@ export default function StaffPage() {
     setDateFilter("today");
     setCustomFrom("");
     setCustomTo("");
-    fetchStaffOrders(s.id, "today");
+    setActiveTab("NEW");
+    setTabOrders({});
+    fetchTabOrders(s.id, "NEW", "today");
   }
 
   function handleDateFilterChange(filter: string) {
     setDateFilter(filter);
     if (filter !== "custom" && selectedStaff) {
-      fetchStaffOrders(selectedStaff.id, filter);
+      setTabOrders({});
+      fetchTabOrders(selectedStaff.id, activeTab, filter);
     }
   }
 
   const waiters = staff.filter((s) => s.role === "WAITER").length;
   const captains = staff.filter((s) => s.role === "CAPTAIN").length;
 
-  const settledStaffOrders = staffOrders.filter((o) => o.status === "SETTLED");
+  const settledStaffOrders = tabOrders["SETTLED"] ?? [];
   const totalOrders = settledStaffOrders.length;
   const totalRevenue = settledStaffOrders.reduce((sum, o) => sum + o.total, 0);
   const avgOrderValue = totalOrders
     ? Math.round(totalRevenue / totalOrders)
     : 0;
-  const activeCount = staffOrders.filter(
-    (o) => o.status === "NEW" || o.status === "COOKING" || o.status === "READY",
-  ).length;
-  const billedCount = staffOrders.filter((o) => o.status === "BILLED").length;
-  const settledCount = staffOrders.filter((o) => o.status === "SETTLED").length;
-  const statusBreakdown = totalOrders
-    ? `${activeCount} Active / ${billedCount} Billed / ${settledCount} Settled`
-    : "—";
+  const activeCount =
+    (tabOrders["NEW"]?.length ?? 0) +
+    (tabOrders["COOKING"]?.length ?? 0) +
+    (tabOrders["READY"]?.length ?? 0);
+  const billedCount = tabOrders["BILLED"]?.length ?? 0;
+  const settledCount = settledStaffOrders.length;
+  const totalLoadedCount = Object.values(tabOrders).reduce(
+    (sum, arr) => sum + (arr?.length ?? 0),
+    0,
+  );
+  const statusBreakdown =
+    activeCount + billedCount + settledCount > 0
+      ? `${activeCount} Active / ${billedCount} Billed / ${settledCount} Settled`
+      : "—";
 
   return (
     <>
@@ -471,7 +491,7 @@ export default function StaffPage() {
               )}
             </div>
             <div className="ml-auto text-xs text-text3">
-              {staffOrders.length} orders
+              {totalLoadedCount} orders loaded
             </div>
           </div>
 
@@ -513,8 +533,16 @@ export default function StaffPage() {
                 />
                 <button
                   onClick={() => {
-                    if (customFrom && customTo && selectedStaff)
-                      fetchStaffOrders(selectedStaff.id, "custom");
+                    if (customFrom && customTo && selectedStaff) {
+                      setTabOrders({});
+                      fetchTabOrders(
+                        selectedStaff.id,
+                        activeTab,
+                        "custom",
+                        customFrom,
+                        customTo,
+                      );
+                    }
                   }}
                   className="rounded-lg bg-accent px-3 py-[5px] text-[11px] font-semibold text-white hover:bg-accent2"
                 >
@@ -524,7 +552,7 @@ export default function StaffPage() {
             )}
           </div>
 
-          {!loadingOrders && (
+          {Object.keys(tabOrders).length > 0 && (
             <div className="mb-[14px] grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="rounded-[10px] border border-border bg-surface p-4 shadow-[0_1px_3px_rgba(0,0,0,.07),0_1px_2px_rgba(0,0,0,.04)]">
                 <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-text3">
@@ -561,87 +589,95 @@ export default function StaffPage() {
             </div>
           )}
 
-          {loadingOrders ? (
-            <div className="py-6 text-center text-sm text-text3">
-              Loading orders...
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
-              {statusGroups.map((status) => {
-                const orders = staffOrders.filter((o) => o.status === status);
-                const cfg = statusConfig[status];
-                const isOpen = expandedStatus === status;
-                return (
-                  <div key={status}>
-                    <div
-                      onClick={() => setExpandedStatus(isOpen ? null : status)}
-                      className={`flex cursor-pointer items-center justify-between border-b border-border px-[18px] py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.10em] transition-colors ${isOpen ? "bg-accent/[0.07] text-accent" : "bg-background text-text3 hover:bg-accent/[0.04] hover:text-accent/70"}`}
+          {/* Tab bar */}
+          <div className="mb-0 flex gap-1 overflow-x-auto pb-0">
+            {(
+              ["NEW", "COOKING", "READY", "BILLED", "SETTLED"] as OrderStatusTab[]
+            ).map((status) => {
+              const cfg = statusConfig[status];
+              const isActive = activeTab === status;
+              const count = tabOrders[status]?.length;
+              const isLoading = loadingTab === status;
+              return (
+                <button
+                  key={status}
+                  onClick={() => handleTabSwitch(status)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-t-[8px] border border-b-0 px-3 py-[7px] text-[11px] font-semibold transition-all ${
+                    isActive
+                      ? "border-border bg-surface text-text shadow-[inset_0_-2px_0_0_var(--color-accent)]"
+                      : "border-transparent bg-surface2/60 text-text3 hover:bg-surface2 hover:text-text2"
+                  }`}
+                >
+                  <span>{cfg.icon}</span>
+                  <span>{cfg.label}</span>
+                  {isLoading ? (
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-t-transparent opacity-60" />
+                  ) : count !== undefined ? (
+                    <span
+                      className={`min-w-[18px] rounded-full px-1 py-[1px] text-center font-mono text-[9px] font-bold ${isActive ? "bg-accent text-white" : "bg-border text-text3"}`}
                     >
-                      <span>
-                        {cfg.icon} {cfg.label}{" "}
-                        <span className="ml-1 text-[9px] font-semibold normal-case tracking-normal opacity-60">
-                          ({orders.length})
-                        </span>
+                      {count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="overflow-hidden rounded-b-[10px] rounded-tr-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+            {loadingTab === activeTab ? (
+              <div className="py-8 text-center text-sm text-text3">
+                Loading orders...
+              </div>
+            ) : tabOrders[activeTab] === undefined ? (
+              <div className="py-8 text-center text-sm text-text3">
+                Select a tab to load orders
+              </div>
+            ) : tabOrders[activeTab]!.length === 0 ? (
+              <div className="py-8 text-center text-sm text-text3">
+                No {statusConfig[activeTab].label.toLowerCase()} orders
+              </div>
+            ) : (
+              tabOrders[activeTab]!.map((order) => (
+                <div
+                  key={order.id}
+                  onClick={() => setSelectedOrder(order)}
+                  className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[13px] font-bold">
+                        {order.orderCode}
                       </span>
-                      <span
-                        className={`text-[10px] transition-transform ${isOpen ? "rotate-180" : ""}`}
-                      >
-                        ▼
+                      <span className="text-[13px] text-text2">
+                        {order.table?.label || "—"}
                       </span>
                     </div>
-                    {isOpen &&
-                      (orders.length === 0 ? (
-                        <div className="border-b border-border px-[18px] py-4 text-center text-xs text-text3">
-                          No orders
-                        </div>
-                      ) : (
-                        orders.map((order) => (
-                          <div
-                            key={order.id}
-                            onClick={() => setSelectedOrder(order)}
-                            className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background"
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-[13px] font-bold">
-                                  {order.orderCode}
-                                </span>
-                                <span className="text-[13px] text-text2">
-                                  {order.table?.label || "—"}
-                                </span>
-                              </div>
-                              <div className="mt-[1px] text-[11px] text-text3">
-                                {order._count?.items || 0} item
-                                {(order._count?.items || 0) !== 1 ? "s" : ""}
-                              </div>
-                            </div>
-                            <div className="min-w-[52px] text-right font-mono text-[13px] font-semibold">
-                              ₹{order.total}
-                            </div>
-                            <div className="min-w-[70px] text-right font-mono text-[10px] text-text3">
-                              {new Date(order.placedAt).toLocaleDateString(
-                                "en-IN",
-                                { day: "2-digit", month: "short" },
-                              )}
-                              <div className="mt-0.5 opacity-60">
-                                {new Date(order.placedAt).toLocaleTimeString(
-                                  "en-IN",
-                                  {
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  },
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ))}
+                    <div className="mt-[1px] text-[11px] text-text3">
+                      {order._count?.items || 0} item
+                      {(order._count?.items || 0) !== 1 ? "s" : ""}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="min-w-[52px] text-right font-mono text-[13px] font-semibold">
+                    ₹{order.total}
+                  </div>
+                  <div className="min-w-[70px] text-right font-mono text-[10px] text-text3">
+                    {new Date(order.placedAt).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                    <div className="mt-0.5 opacity-60">
+                      {new Date(order.placedAt).toLocaleTimeString("en-IN", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
       {selectedOrder && (
