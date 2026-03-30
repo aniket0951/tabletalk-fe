@@ -67,6 +67,7 @@ export default function OffersPage() {
     redemptions: number;
     totalDiscountGiven: number;
   } | null>(null);
+  const [statsLoadingId, setStatsLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/api/offers")
@@ -196,6 +197,7 @@ export default function OffersPage() {
   }
 
   async function openStats(offer: ApiOffer) {
+    setStatsLoadingId(offer.id);
     try {
       const res = await apiFetch(`/api/offers/${offer.id}/stats`);
       const body = await res.json();
@@ -203,6 +205,7 @@ export default function OffersPage() {
         setStatsModal({ offer, ...body.data });
       }
     } catch {}
+    setStatsLoadingId(null);
   }
 
   function toggleDay(day: number) {
@@ -304,9 +307,15 @@ export default function OffersPage() {
                 <div className="mt-3 flex gap-1.25">
                   <button
                     onClick={() => openStats(offer)}
-                    className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2"
+                    disabled={statsLoadingId === offer.id}
+                    className="relative flex-1 overflow-hidden rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-text2 hover:bg-surface2 disabled:cursor-wait disabled:opacity-70"
                   >
-                    Stats
+                    {statsLoadingId === offer.id ? "Loading…" : "Stats"}
+                    {statsLoadingId === offer.id && (
+                      <span className="absolute bottom-0 left-0 h-[2px] w-full overflow-hidden bg-border">
+                        <span className="animate-loading-bar absolute inset-y-0 left-0 w-1/3 bg-accent" />
+                      </span>
+                    )}
                   </button>
                   <button
                     onClick={() =>

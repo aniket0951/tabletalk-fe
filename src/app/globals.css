@@ -101,6 +101,10 @@
     animation: blink 1.5s infinite;
   }
 
+  .animate-loading-bar {
+    animation: loading 1.2s ease-in-out infinite;
+  }
+
   .animate-fadeIn {
     animation: fadeIn 0.2s ease;
   }
