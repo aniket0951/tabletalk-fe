@@ -127,7 +127,7 @@ export default function Sidebar({
           {/* Branch switcher */}
           <div className="relative mb-2">
             <button
-              onClick={() => setBranchMenuOpen((v) => !v)}
+              onClick={() => isMulti && setBranchMenuOpen((v) => !v)}
               className="flex w-full items-center gap-2 rounded-lg bg-white/[0.06] px-[10px] py-2 transition-all hover:bg-white/[0.1]"
             >
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[13px]">🏠</div>
@@ -151,7 +151,7 @@ export default function Sidebar({
                   <div className="mt-[3px] inline-block rounded-[5px] bg-[rgba(239,68,68,.2)] px-[7px] py-[2px] font-mono text-[9px] font-bold tracking-[0.08em] text-[#f87171]">✕ NO SUBSCRIPTION</div>
                 )}
               </div>
-              {branches.length > 1 && (
+              {isMulti && branches.length > 1 && (
                 <span className={`shrink-0 font-mono text-[10px] text-white/40 transition-transform ${branchMenuOpen ? "rotate-180" : ""}`}>▾</span>
               )}
             </button>

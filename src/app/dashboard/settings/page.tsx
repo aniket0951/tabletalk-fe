@@ -295,7 +295,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Branches */}
-              {branches.length > 0 && (
+              {plan === "MULTI" && branches.length > 0 && (
                 <div className="mt-[14px] overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
                   <div className="flex items-center justify-between border-b border-border px-[18px] py-[14px]">
                     <div className="text-[13px] font-semibold">Branches</div>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import { useSocket } from "@/contexts/SocketContext";
-import { useSubscriptionStatus, useTrialDays, useRestaurant, useBranches } from "@/app/dashboard/contexts";
+import { useSubscriptionStatus, useTrialDays, useRestaurant, useBranches, useSubscriptionPlan } from "@/app/dashboard/contexts";
 import { useBranchSwitch } from "@/hooks/useBranchSwitch";
 
 interface TopbarProps {
@@ -18,6 +18,7 @@ export default function Topbar({ title, onAddItem, onMenuToggle, loading }: Topb
   const { isConnected } = useSocket();
   const subscriptionStatus = useSubscriptionStatus();
   const trialDaysLeft = useTrialDays();
+  const plan = useSubscriptionPlan();
   const restaurant = useRestaurant();
   const branches = useBranches();
   const { switchBranch, switching } = useBranchSwitch();
@@ -29,7 +30,7 @@ export default function Topbar({ title, onAddItem, onMenuToggle, loading }: Topb
     router.push(ROUTES.AUTH_LOGIN);
   }
 
-  const showSwitcher = branches.length > 1;
+  const showSwitcher = plan === "MULTI" && branches.length > 1;
 
   return (
     <div className="sticky top-0 z-50 border-b border-border bg-surface">
