@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import Topbar from "@/components/dashboard/Topbar";
 import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { OrdersTableSkeleton } from "@/components/shared/Skeleton";
@@ -18,6 +18,44 @@ const statusMap: Record<string, { cls: string; label: string }> = {
   BILLED: { cls: "bg-blue-bg text-blue", label: "BILLED" },
   SETTLED: { cls: "bg-surface2 text-text3", label: "SETTLED" },
 };
+
+const OrderRow = memo(function OrderRow({
+  order,
+  onOpen,
+}: {
+  order: ApiOrderSummary;
+  onOpen: (o: ApiOrderSummary) => void;
+}) {
+  const st = statusMap[order.status];
+  return (
+    <tr onClick={() => onOpen(order)} className="cursor-pointer hover:bg-background">
+      <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs">{order.orderCode}</td>
+      <td className="border-b border-border px-[14px] py-[11px] text-[13px] font-bold">{order.table?.label || "—"}</td>
+      <td className="border-b border-border px-[14px] py-[11px] text-[13px] text-text2">
+        {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
+      </td>
+      <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs font-bold">₹{order.total}</td>
+      <td className="border-b border-border px-[14px] py-[11px] text-xs text-text2">{order.staff?.name || "—"}</td>
+      <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs text-text3">
+        <div>{new Date(order.placedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+        <div className="mt-0.5 text-[10px] opacity-60">{new Date(order.placedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true })}</div>
+      </td>
+      <td className="border-b border-border px-[14px] py-[11px]">
+        <span className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${st?.cls || ""}`}>
+          {st?.label || order.status}
+        </span>
+      </td>
+      <td className="border-b border-border px-[14px] py-[11px]">
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpen(order); }}
+          className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
+        >
+          View →
+        </button>
+      </td>
+    </tr>
+  );
+});
 
 interface Pagination {
   page: number;
@@ -106,14 +144,27 @@ export default function OrdersPage() {
   const handleSocketUpdate = useCallback((updated: ApiOrder) => {
     const summary = toSummary(updated);
     setOrders((prev) => {
-      const exists = prev.some((o) => o.id === updated.id);
-      if (exists) return prev.map((o) => (o.id === updated.id ? summary : o));
-      return prev;
+      const existing = prev.find((o) => o.id === updated.id);
+      if (!existing) return prev;
+      // Update statusCounts when status changes
+      if (existing.status !== updated.status) {
+        setStatusCounts((counts) => ({
+          ...counts,
+          [existing.status as string]: Math.max(0, (counts[existing.status as string] || 0) - 1),
+          [updated.status as string]: (counts[updated.status as string] || 0) + 1,
+        }));
+      }
+      return prev.map((o) => (o.id === updated.id ? summary : o));
     });
   }, []);
 
   const handleSocketCreate = useCallback((created: ApiOrder) => {
     setOrders((prev) => [toSummary(created), ...prev]);
+    setStatusCounts((counts) => ({
+      ...counts,
+      [created.status as string]: (counts[created.status as string] || 0) + 1,
+    }));
+    setTotalAll((n) => n + 1);
   }, []);
 
   useSocketEvent(SOCKET_EVENT.ORDER_UPDATED, handleSocketUpdate);
@@ -144,6 +195,8 @@ export default function OrdersPage() {
     setPage(newPage);
     refetch({ page: newPage });
   }
+
+  const handleOpenOrder = useCallback((o: ApiOrderSummary) => setSelectedSummary(o), []);
 
   const filterTabs = [
     { label: `All (${totalAll})`, value: "ALL" },
@@ -212,37 +265,9 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => {
-                  const st = statusMap[order.status];
-                  return (
-                    <tr key={order.id} onClick={() => setSelectedSummary(order)} className="cursor-pointer hover:bg-background">
-                      <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs">{order.orderCode}</td>
-                      <td className="border-b border-border px-[14px] py-[11px] text-[13px] font-bold">{order.table?.label || "—"}</td>
-                      <td className="border-b border-border px-[14px] py-[11px] text-[13px] text-text2">
-                        {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
-                      </td>
-                      <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs font-bold">₹{order.total}</td>
-                      <td className="border-b border-border px-[14px] py-[11px] text-xs text-text2">{order.staff?.name || "—"}</td>
-                      <td className="border-b border-border px-[14px] py-[11px] font-mono text-xs text-text3">
-                        <div>{new Date(order.placedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                        <div className="mt-0.5 text-[10px] opacity-60">{new Date(order.placedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true })}</div>
-                      </td>
-                      <td className="border-b border-border px-[14px] py-[11px]">
-                        <span className={`inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] font-mono text-[10px] font-bold tracking-[0.04em] ${st?.cls || ""}`}>
-                          {st?.label || order.status}
-                        </span>
-                      </td>
-                      <td className="border-b border-border px-[14px] py-[11px]">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedSummary(order); }}
-                          className="rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text2 transition-all hover:bg-surface2"
-                        >
-                          View →
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {orders.map((order) => (
+                  <OrderRow key={order.id} order={order} onOpen={handleOpenOrder} />
+                ))}
               </tbody>
             </table>
           )}
