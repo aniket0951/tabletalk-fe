@@ -182,8 +182,10 @@ export default function BillingPage() {
           <div className="mb-[14px] flex items-start gap-[9px] rounded-lg border border-green-bg px-[14px] py-[10px] text-xs text-green-mid">
             ✓{" "}
             <div>
-              <b>{subscriptionPlan} Plan</b> is active. Auto-collected via
-              Razorpay.
+              <b>{subscriptionPlan} Plan</b> is active.
+              {trialDaysLeft != null && (
+                <> Renews in <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}</b>.</>
+              )}
             </div>
           </div>
         ) : isExpired ? (

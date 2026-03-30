@@ -106,7 +106,12 @@ export default function Sidebar({ restName, subscriptionPlan, subscriptionStatus
                   <div className="mt-[3px] inline-block rounded-[5px] bg-[rgba(34,197,94,.2)] px-[7px] py-[2px] font-mono text-[9px] font-bold tracking-[0.08em] text-[#4ade80]">● {subscriptionPlan} PLAN</div>
                   {subscriptionStatus === "TRIAL" && trialDaysLeft != null && (
                     <div className={`mt-[3px] font-mono text-[9px] font-bold tracking-[0.04em] ${trialDaysLeft <= 3 ? "text-[#fbbf24]" : "text-white/40"}`}>
-                      {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
+                      {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left in trial
+                    </div>
+                  )}
+                  {subscriptionStatus === "ACTIVE" && trialDaysLeft != null && (
+                    <div className={`mt-[3px] font-mono text-[9px] font-bold tracking-[0.04em] ${trialDaysLeft <= 7 ? "text-[#fbbf24]" : "text-white/40"}`}>
+                      renews in {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}
                     </div>
                   )}
                 </>
