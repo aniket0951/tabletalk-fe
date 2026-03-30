@@ -275,7 +275,8 @@ export default function CustomersPage() {
           </div>
 
           {/* Tab Bar */}
-          <div className="flex border-b border-border bg-surface overflow-x-auto">
+          <div className="border-b border-border bg-surface px-4 sm:px-6">
+            <div className="flex gap-1 overflow-x-auto">
             {STATUS_TABS.map((status) => {
               const cfg = tabConfig[status];
               const isActive = activeTab === status;
@@ -287,18 +288,18 @@ export default function CustomersPage() {
                 <button
                   key={status}
                   onClick={() => handleTabSwitch(status)}
-                  className={`relative flex shrink-0 items-center gap-1.5 px-4 py-3 text-[12px] font-semibold transition-colors ${
+                  className={`relative flex shrink-0 items-center gap-[7px] rounded-t-[8px] px-3 py-2.5 text-[12px] font-semibold transition-all ${
                     isActive
-                      ? "text-accent border-b-2 border-accent bg-accent-bg/40"
+                      ? "bg-accent-bg text-accent shadow-[inset_0_-2px_0_0] shadow-accent"
                       : "text-text3 hover:text-text2 hover:bg-surface2"
                   }`}
                 >
-                  <span>{cfg.icon}</span>
+                  <span className="text-[13px]">{cfg.icon}</span>
                   <span>{cfg.label}</span>
                   {isFetching ? (
-                    <span className="ml-0.5 h-3.5 w-3.5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                    <span className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-accent border-t-transparent" />
                   ) : count !== undefined ? (
-                    <span className={`ml-0.5 rounded-[5px] px-1.5 py-px font-mono text-[9px] font-bold ${
+                    <span className={`min-w-[18px] rounded-full px-1.5 py-px text-center font-mono text-[9px] font-bold leading-[14px] ${
                       isActive ? "bg-accent text-white" : "bg-border2 text-text3"
                     }`}>
                       {count}
@@ -307,6 +308,7 @@ export default function CustomersPage() {
                 </button>
               );
             })}
+            </div>
           </div>
 
           {/* Tab Content */}
