@@ -42,6 +42,11 @@ export default function Topbar({ title, onAddItem, onMenuToggle, loading }: Topb
             TRIAL · {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
           </div>
         )}
+        {subscriptionStatus === "ACTIVE" && trialDaysLeft != null && (
+          <div className={`hidden items-center gap-[5px] rounded-[5px] px-[7px] py-[2px] font-mono text-[10px] font-bold tracking-[0.04em] sm:inline-flex ${trialDaysLeft <= 7 ? "bg-[rgba(251,191,36,.15)] text-[#fbbf24]" : "bg-[rgba(34,197,94,.12)] text-[#4ade80]"}`}>
+            ACTIVE · {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
+          </div>
+        )}
         <span className="hidden font-mono text-[11px] text-text3 md:inline">26 Feb 2026</span>
         {onAddItem && (
           <button onClick={onAddItem} className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface2">

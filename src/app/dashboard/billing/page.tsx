@@ -164,47 +164,39 @@ export default function BillingPage() {
     <>
       <Topbar title="Billing & Plans" onMenuToggle={toggleSidebar} />
       <div className="flex-1 p-4 animate-fadeIn sm:p-6">
-        {/* Alert */}
-        {isTrial && trialDaysLeft != null ? (
-          <div
-            className={`mb-[14px] flex items-start gap-[9px] rounded-lg border px-[14px] py-[10px] text-xs ${trialDaysLeft <= 3 ? "border-[#fca5a5] bg-[rgba(239,68,68,.08)] text-[#f87171]" : "border-[#fcd34d] bg-amber-bg text-amber"}`}
-          >
-            ⚠️{" "}
-            <div>
-              <b>
-                {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} remaining
-              </b>{" "}
-              in your free trial. Add a payment method to continue after the
-              trial ends.
-            </div>
-          </div>
-        ) : isActive ? (
-          <div className="mb-[14px] flex items-start gap-[9px] rounded-lg border border-green-bg px-[14px] py-[10px] text-xs text-green-mid">
-            ✓{" "}
-            <div>
-              <b>{subscriptionPlan} Plan</b> is active.
-              {trialDaysLeft != null && (
-                <> Renews in <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}</b>.</>
+        {/* Current subscription status card */}
+        {subscriptionStatus && (
+          <div className={`mb-4 rounded-[11px] border p-4 ${isActive ? "border-green-bg bg-[rgba(34,197,94,.06)]" : isTrial ? "border-[#fcd34d] bg-amber-bg" : "border-[#fca5a5] bg-[rgba(239,68,68,.06)]"}`}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base ${isActive ? "bg-[rgba(34,197,94,.15)]" : isTrial ? "bg-[rgba(251,191,36,.15)]" : "bg-[rgba(239,68,68,.15)]"}`}>
+                  {isActive ? "✓" : isTrial ? "⏱" : "⚠️"}
+                </div>
+                <div>
+                  <div className="text-sm font-bold">
+                    {subscriptionPlan ? `${subscriptionPlan} Plan` : "No active plan"}
+                    <span className={`ml-2 rounded-[5px] px-[7px] py-[2px] font-mono text-[9px] font-bold tracking-[0.08em] ${isActive ? "bg-[rgba(34,197,94,.2)] text-green-mid" : isTrial ? "bg-[rgba(251,191,36,.2)] text-amber" : "bg-[rgba(239,68,68,.2)] text-[#f87171]"}`}>
+                      {subscriptionStatus}
+                    </span>
+                  </div>
+                  <div className="mt-[3px] text-xs text-text3">
+                    {isActive && trialDaysLeft != null && `Renews in ${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""}`}
+                    {isTrial && trialDaysLeft != null && `${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} remaining in free trial`}
+                    {isExpired && "Your subscription has expired"}
+                    {isCancelled && "Your subscription has been cancelled"}
+                    {!isActive && !isTrial && !isExpired && !isCancelled && `Status: ${subscriptionStatus.toLowerCase()}`}
+                  </div>
+                </div>
+              </div>
+              {trialDaysLeft != null && (isActive || isTrial) && (
+                <div className={`rounded-[10px] border px-4 py-2 text-center ${isActive ? "border-green-bg" : "border-[#fcd34d]"}`}>
+                  <div className={`font-mono text-[22px] font-bold leading-none tracking-[-0.02em] ${isActive ? "text-green-mid" : "text-amber"}`}>{trialDaysLeft}</div>
+                  <div className="mt-[3px] text-[9px] uppercase tracking-wide text-text3">days left</div>
+                </div>
               )}
             </div>
           </div>
-        ) : isExpired ? (
-          <div className="mb-[14px] flex items-start gap-[9px] rounded-lg border border-[#fca5a5] bg-[rgba(239,68,68,.08)] px-[14px] py-[10px] text-xs text-[#f87171]">
-            ⚠️{" "}
-            <div>
-              Your subscription has <b>expired</b>. Renew your plan to continue
-              using TableTalk.
-            </div>
-          </div>
-        ) : isInactive && subscriptionStatus ? (
-          <div className="mb-[14px] flex items-start gap-[9px] rounded-lg border border-[#fca5a5] bg-[rgba(239,68,68,.08)] px-[14px] py-[10px] text-xs text-[#f87171]">
-            ⚠️{" "}
-            <div>
-              Your subscription is <b>{subscriptionStatus.toLowerCase()}</b>.
-              Subscribe to a plan to continue using TableTalk.
-            </div>
-          </div>
-        ) : null}
+        )}
 
         {/* Plan cards */}
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
