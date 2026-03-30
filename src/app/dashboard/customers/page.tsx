@@ -22,6 +22,17 @@ interface Pagination {
   totalPages: number;
 }
 
+const STATUS_TABS = ["NEW", "COOKING", "READY", "BILLED", "SETTLED"] as const;
+type OrderStatusTab = (typeof STATUS_TABS)[number];
+
+const tabConfig: Record<OrderStatusTab, { label: string; icon: string }> = {
+  NEW:     { label: "New",     icon: "📱" },
+  COOKING: { label: "Cooking", icon: "🍳" },
+  READY:   { label: "Ready",   icon: "🔔" },
+  BILLED:  { label: "Billed",  icon: "🧾" },
+  SETTLED: { label: "Settled", icon: "✅" },
+};
+
 export default function CustomersPage() {
   const toggleSidebar = useSidebarToggle();
   const [customers, setCustomers] = useState<ApiCustomer[]>([]);
@@ -30,11 +41,14 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  // Customer detail state
   const [selectedCustomer, setSelectedCustomer] = useState<ApiCustomer | null>(null);
-  const [customerOrders, setCustomerOrders] = useState<ApiOrderSummary[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [activeTab, setActiveTab] = useState<OrderStatusTab>("SETTLED");
+  const [tabOrders, setTabOrders] = useState<Partial<Record<OrderStatusTab, ApiOrderSummary[]>>>({});
+  const [loadingTab, setLoadingTab] = useState<OrderStatusTab | null>(null);
   const [selectedSummary, setSelectedSummary] = useState<ApiOrderSummary | null>(null);
-  const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const fetchCustomers = useCallback((searchQuery: string, pageNum: number) => {
@@ -71,9 +85,7 @@ export default function CustomersPage() {
     setSearch(value);
     setPage(1);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      fetchCustomers(value, 1);
-    }, 300);
+    debounceRef.current = setTimeout(() => fetchCustomers(value, 1), 300);
   }
 
   function handlePageChange(newPage: number) {
@@ -81,31 +93,33 @@ export default function CustomersPage() {
     fetchCustomers(search, newPage);
   }
 
-  const statusGroups = ["NEW", "COOKING", "READY", "BILLED", "SETTLED"];
-  const statusConfig: Record<string, { label: string; icon: string }> = {
-    NEW: { label: "New", icon: "📱" },
-    COOKING: { label: "Cooking", icon: "🍳" },
-    READY: { label: "Ready", icon: "🔔" },
-    BILLED: { label: "Billed", icon: "🧾" },
-    SETTLED: { label: "Settled", icon: "✅" },
-  };
+  async function fetchTabOrders(customer: ApiCustomer, status: OrderStatusTab) {
+    setLoadingTab(status);
+    try {
+      const res = await apiFetch(`/api/orders?customerPhone=${encodeURIComponent(customer.phone)}&status=${status}&limit=50`);
+      const body = await res.json();
+      const orders: ApiOrderSummary[] = Array.isArray(body.data?.orders) ? body.data.orders : [];
+      setTabOrders((prev) => ({ ...prev, [status]: orders }));
+    } catch {
+      setTabOrders((prev) => ({ ...prev, [status]: [] }));
+    } finally {
+      setLoadingTab(null);
+    }
+  }
 
-  function openCustomerOrders(c: ApiCustomer) {
+  function openCustomerDetail(c: ApiCustomer) {
     setSelectedCustomer(c);
-    setCustomerOrders([]);
-    setExpandedStatus(null);
-    setLoadingOrders(true);
-    apiFetch(`/api/orders?customerPhone=${encodeURIComponent(c.phone)}`)
-      .then((r) => r.json())
-      .then((body) => {
-        const d = body.data;
-        const orders = Array.isArray(d) ? d : Array.isArray(d?.orders) ? d.orders : [];
-        setCustomerOrders(orders);
-        const first = statusGroups.find((st) => orders.some((o: ApiOrderSummary) => o.status === st));
-        setExpandedStatus(first || null);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingOrders(false));
+    setTabOrders({});
+    setActiveTab("SETTLED");
+    fetchTabOrders(c, "SETTLED");
+  }
+
+  function handleTabSwitch(status: OrderStatusTab) {
+    setActiveTab(status);
+    // Only fetch if not already cached
+    if (selectedCustomer && tabOrders[status] === undefined) {
+      fetchTabOrders(selectedCustomer, status);
+    }
   }
 
   const statCards = [
@@ -154,7 +168,7 @@ export default function CustomersPage() {
                 {customers.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => openCustomerOrders(c)}
+                    onClick={() => openCustomerDetail(c)}
                     className="cursor-pointer rounded-xl border-[1.5px] border-border bg-surface p-4 transition-all hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(0,0,0,.08)]"
                   >
                     <div className="mb-2 flex items-center gap-2">
@@ -230,10 +244,11 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Customer Orders — inline accordion */}
+      {/* Customer Detail — Tab view */}
       {selectedCustomer && (
-        <div className="px-4 pt-6 pb-6 animate-fadeIn sm:px-6">
-          <div className="mb-[14px] flex flex-wrap items-center gap-3">
+        <div className="flex-1 animate-fadeIn">
+          {/* Header */}
+          <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-4 sm:px-6">
             <button
               onClick={() => setSelectedCustomer(null)}
               className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-border bg-surface2 text-[13px] text-text2 transition-all hover:bg-accent-bg hover:text-accent"
@@ -241,57 +256,103 @@ export default function CustomersPage() {
               ←
             </button>
             <div className="flex items-center gap-2">
-              <div className="text-sm font-bold">{selectedCustomer.name || "Unknown"}</div>
-              <span className="font-mono text-[10px] text-text3">{selectedCustomer.phone}</span>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-bg text-sm">👤</div>
+              <div>
+                <div className="text-sm font-bold">{selectedCustomer.name || "Unknown"}</div>
+                <div className="font-mono text-[10px] text-text3">{selectedCustomer.phone}</div>
+              </div>
             </div>
-            <div className="ml-auto flex items-center gap-3 text-xs text-text3">
-              <span>{selectedCustomer.visitCount} visits</span>
-              <span>₹{selectedCustomer.totalSpent.toLocaleString("en-IN")} spent</span>
+            <div className="ml-auto flex items-center gap-3">
+              <div className="rounded-[7px] border border-border bg-surface2 px-3 py-1.5 text-center">
+                <div className="font-mono text-[11px] font-bold text-accent">{selectedCustomer.visitCount}</div>
+                <div className="text-[9px] uppercase tracking-wide text-text3">Visits</div>
+              </div>
+              <div className="rounded-[7px] border border-border bg-surface2 px-3 py-1.5 text-center">
+                <div className="font-mono text-[11px] font-bold">₹{selectedCustomer.totalSpent.toLocaleString("en-IN")}</div>
+                <div className="text-[9px] uppercase tracking-wide text-text3">Spent</div>
+              </div>
             </div>
           </div>
 
-          {loadingOrders ? (
-            <div className="py-6 text-center text-sm text-text3">Loading orders...</div>
-          ) : (
-            <div className="overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
-              {statusGroups.map((status) => {
-                const orders = customerOrders.filter((o) => o.status === status);
-                const cfg = statusConfig[status];
-                const isOpen = expandedStatus === status;
-                return (
-                  <div key={status}>
-                    <div
-                      onClick={() => setExpandedStatus(isOpen ? null : status)}
-                      className={`flex cursor-pointer items-center justify-between border-b border-border px-[18px] py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.10em] transition-colors ${isOpen ? "bg-accent/[0.07] text-accent" : "bg-background text-text3 hover:bg-accent/[0.04] hover:text-accent/70"}`}
-                    >
-                      <span>{cfg.icon} {cfg.label} <span className="ml-1 text-[9px] font-semibold normal-case tracking-normal opacity-60">({orders.length})</span></span>
-                      <span className={`text-[10px] transition-transform ${isOpen ? "rotate-180" : ""}`}>▼</span>
-                    </div>
-                    {isOpen && (orders.length === 0 ? (
-                      <div className="border-b border-border px-[18px] py-4 text-center text-xs text-text3">No orders</div>
-                    ) : orders.map((order) => (
-                      <div key={order.id} onClick={() => setSelectedSummary(order)} className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[13px] font-bold">{order.orderCode}</span>
-                            <span className="text-[13px] text-text2">{order.table?.label || "—"}</span>
-                          </div>
-                          <div className="mt-[1px] text-[11px] text-text3">
-                            {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
-                          </div>
-                        </div>
-                        <div className="min-w-[52px] text-right font-mono text-[13px] font-semibold">₹{order.total}</div>
-                        <div className="min-w-[70px] text-right font-mono text-[10px] text-text3">
-                          {new Date(order.placedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
-                          <div className="mt-0.5 opacity-60">{new Date(order.placedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true })}</div>
-                        </div>
+          {/* Tab Bar */}
+          <div className="flex border-b border-border bg-surface overflow-x-auto">
+            {STATUS_TABS.map((status) => {
+              const cfg = tabConfig[status];
+              const isActive = activeTab === status;
+              const isFetching = loadingTab === status;
+              const orders = tabOrders[status];
+              const count = orders?.length;
+
+              return (
+                <button
+                  key={status}
+                  onClick={() => handleTabSwitch(status)}
+                  className={`relative flex shrink-0 items-center gap-1.5 px-4 py-3 text-[12px] font-semibold transition-colors ${
+                    isActive
+                      ? "text-accent border-b-2 border-accent bg-accent-bg/40"
+                      : "text-text3 hover:text-text2 hover:bg-surface2"
+                  }`}
+                >
+                  <span>{cfg.icon}</span>
+                  <span>{cfg.label}</span>
+                  {isFetching ? (
+                    <span className="ml-0.5 h-3.5 w-3.5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  ) : count !== undefined ? (
+                    <span className={`ml-0.5 rounded-[5px] px-1.5 py-px font-mono text-[9px] font-bold ${
+                      isActive ? "bg-accent text-white" : "bg-border2 text-text3"
+                    }`}>
+                      {count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab Content */}
+          <div className="px-4 py-4 sm:px-6">
+            {loadingTab === activeTab ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-sm text-text3">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                Loading orders...
+              </div>
+            ) : !tabOrders[activeTab] ? (
+              <div className="py-10 text-center text-sm text-text3">Loading...</div>
+            ) : tabOrders[activeTab]!.length === 0 ? (
+              <div className="py-10 text-center">
+                <div className="mb-1 text-xl">{tabConfig[activeTab].icon}</div>
+                <div className="text-sm text-text3">No {tabConfig[activeTab].label.toLowerCase()} orders for this customer</div>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-[10px] border border-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,.07)]">
+                {tabOrders[activeTab]!.map((order) => (
+                  <div
+                    key={order.id}
+                    onClick={() => setSelectedSummary(order)}
+                    className="flex cursor-pointer items-center gap-[11px] border-b border-border px-[18px] py-[10px] transition-colors last:border-b-0 hover:bg-background"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[13px] font-bold">{order.orderCode}</span>
+                        <span className="text-[13px] text-text2">{order.table?.label || "—"}</span>
                       </div>
-                    )))}
+                      <div className="mt-[1px] text-[11px] text-text3">
+                        {order._count?.items || 0} item{(order._count?.items || 0) !== 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <div className="min-w-[52px] text-right font-mono text-[13px] font-semibold">₹{order.total}</div>
+                    <div className="min-w-[70px] text-right font-mono text-[10px] text-text3">
+                      {new Date(order.placedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                      <div className="mt-0.5 opacity-60">
+                        {new Date(order.placedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true })}
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-text3">→</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
