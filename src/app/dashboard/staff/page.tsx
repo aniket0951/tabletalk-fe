@@ -8,6 +8,7 @@ import { useSidebarToggle } from "../contexts";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import { useStaffList, invalidateStaffCache } from "@/hooks/useStaffList";
 import type { ApiStaff, ApiOrderSummary, StaffRole } from "@/types";
 import { RequestType } from "@/types/constants";
@@ -44,6 +45,7 @@ export default function StaffPage() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ApiStaff | null>(null);
 
   function openAdd() {
     setEditingId(null);
@@ -110,11 +112,9 @@ export default function StaffPage() {
     setSaving(false);
   }
 
-  async function handleDelete(id: string) {
-    const s = staff.find((x) => x.id === id);
-    if (!s) return;
-    if (!confirm(`Remove ${s.name}? Their order assignments will remain.`))
-      return;
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
     setDeletingId(id);
     try {
       const res = await apiFetch(`/api/staff/${id}`, {
@@ -123,7 +123,8 @@ export default function StaffPage() {
       if (res.ok) {
         setStaff((prev) => (prev ?? cachedStaff).filter((x) => x.id !== id));
         invalidateStaffCache();
-        showToast(`${s.name} removed`);
+        showToast(`${deleteTarget.name} removed`);
+        setDeleteTarget(null);
       }
     } catch {
       showToast("Failed to remove staff");
@@ -322,7 +323,7 @@ export default function StaffPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(s.id)}
+                      onClick={() => setDeleteTarget(s)}
                       disabled={deletingId === s.id}
                       className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-red hover:border-[rgba(153,27,27,.2)] hover:bg-red-bg disabled:opacity-50"
                     >
@@ -684,6 +685,16 @@ export default function StaffPage() {
         <OrderDrawer
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
+        />
+      )}
+      {deleteTarget && (
+        <ConfirmModal
+          title="Remove Staff"
+          message={`Remove ${deleteTarget.name}? Their order assignments will remain.`}
+          confirmLabel="Remove"
+          loading={deletingId === deleteTarget.id}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </>

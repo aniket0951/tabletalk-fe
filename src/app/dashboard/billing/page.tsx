@@ -11,6 +11,7 @@ import {
 import { apiFetch } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import { useToast } from "@/contexts/ToastContext";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import type { ApiInvoice, CheckoutResponse, PlanType } from "@/types";
 import { PlanName, RequestType, SubscriptionStatus } from "@/types/constants";
 
@@ -57,6 +58,7 @@ export default function BillingPage() {
   );
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/billing/invoices")
@@ -123,7 +125,6 @@ export default function BillingPage() {
   }
 
   async function handleCancel() {
-    if (!confirm("Are you sure you want to cancel your subscription?")) return;
     setCancelLoading(true);
     try {
       const res = await apiFetch("/api/billing/cancel", {
@@ -131,6 +132,7 @@ export default function BillingPage() {
       });
       if (res.ok) {
         showToast("Subscription cancelled.");
+        setShowCancelConfirm(false);
         window.location.reload();
       } else {
         const body = await res.json();
@@ -282,7 +284,7 @@ export default function BillingPage() {
               </div>
             </div>
             <button
-              onClick={handleCancel}
+              onClick={() => setShowCancelConfirm(true)}
               disabled={cancelLoading}
               className="rounded-lg border-[1.5px] border-[#fca5a5] bg-transparent px-[14px] py-[7px] text-xs font-semibold text-[#f87171] transition-all hover:bg-[rgba(239,68,68,.08)] disabled:opacity-50"
             >
@@ -439,6 +441,16 @@ export default function BillingPage() {
             </div>
           </div>
         </div>
+      )}
+      {showCancelConfirm && (
+        <ConfirmModal
+          title="Cancel Subscription"
+          message="Are you sure you want to cancel your subscription? You'll lose access at the end of the current billing period."
+          confirmLabel="Cancel Subscription"
+          loading={cancelLoading}
+          onConfirm={handleCancel}
+          onCancel={() => setShowCancelConfirm(false)}
+        />
       )}
     </>
   );

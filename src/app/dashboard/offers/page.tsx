@@ -7,6 +7,7 @@ import { useSidebarToggle } from "../contexts";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import type { ApiOffer, OfferType, DiscountType } from "@/types";
 import { RequestType } from "@/types/constants";
 
@@ -44,6 +45,7 @@ export default function OffersPage() {
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ApiOffer | null>(null);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -178,9 +180,9 @@ export default function OffersPage() {
     setTogglingId(null);
   }
 
-  async function handleDelete(id: string) {
-    const offer = offers.find((o) => o.id === id);
-    if (!offer || !confirm(`Delete "${offer.name}"?`)) return;
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
     setDeletingId(id);
     try {
       const res = await apiFetch(`/api/offers/${id}`, {
@@ -189,6 +191,7 @@ export default function OffersPage() {
       if (res.ok) {
         setOffers((prev) => prev.filter((o) => o.id !== id));
         showToast("Offer deleted");
+        setDeleteTarget(null);
       }
     } catch {
       showToast("Failed to delete offer");
@@ -326,7 +329,7 @@ export default function OffersPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(offer.id)}
+                    onClick={() => setDeleteTarget(offer)}
                     disabled={deletingId === offer.id}
                     className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-red hover:bg-red-bg hover:border-[rgba(153,27,27,.2)] disabled:opacity-50"
                   >
@@ -575,6 +578,17 @@ export default function OffersPage() {
       )}
 
       {/* Stats Modal */}
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Offer"
+          message={`Delete "${deleteTarget.name}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          loading={deletingId === deleteTarget.id}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
       {statsModal && (
         <div
           className="fixed inset-0 z-500 flex items-center justify-center bg-black/40 backdrop-blur-[3px] animate-fadeO"

@@ -10,6 +10,7 @@ import { useSocketEvent } from "@/hooks/useSocketEvent";
 import { SOCKET_EVENT } from "@/lib/events";
 import { apiFetch } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import type { ApiDiningTable } from "@/types";
 import { RequestType, TableStatus } from "@/types/constants";
 
@@ -29,6 +30,7 @@ export default function TablesPage() {
   const [tblActive, setTblActive] = useState(true);
   const [savingTable, setSavingTable] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ApiDiningTable | null>(null);
 
   useEffect(() => {
     apiFetch("/api/tables")
@@ -140,15 +142,17 @@ export default function TablesPage() {
     setEditModal(false);
   }
 
-  async function deleteTable(id: string) {
-    const t = tables.find((x) => x.id === id);
-    if (!t) return;
+  function deleteTable(t: ApiDiningTable) {
     if (t.status === TableStatus.Occupid) {
-      alert(`${t.label} is currently occupied. Cannot delete.`);
+      showToast(`${t.label} is currently occupied. Cannot delete.`);
       return;
     }
-    if (!confirm(`Delete ${t.label}? This will also remove its QR code.`))
-      return;
+    setDeleteTarget(t);
+  }
+
+  async function confirmDeleteTable() {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
     setDeletingId(id);
     try {
       const res = await apiFetch(`/api/tables/${id}`, {
@@ -156,7 +160,8 @@ export default function TablesPage() {
       });
       if (res.ok) {
         setTables((prev) => prev.filter((x) => x.id !== id));
-        showToast(`🗑 ${t.label} removed.`);
+        showToast(`${deleteTarget.label} removed.`);
+        setDeleteTarget(null);
       }
     } catch {
       showToast("Failed to delete table");
@@ -255,7 +260,7 @@ export default function TablesPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => deleteTable(t.id)}
+                    onClick={() => deleteTable(t)}
                     disabled={deletingId === t.id}
                     className="flex-1 rounded-md border border-border bg-transparent py-[5px] text-center text-[10px] font-semibold text-red hover:bg-red-bg hover:border-[rgba(153,27,27,.2)] disabled:opacity-50"
                   >
@@ -437,6 +442,16 @@ export default function TablesPage() {
             </div>
           </div>
         </div>
+      )}
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Table"
+          message={`Delete ${deleteTarget.label}? This will also remove its QR code.`}
+          confirmLabel="Delete"
+          loading={deletingId === deleteTarget.id}
+          onConfirm={confirmDeleteTable}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </>
   );
