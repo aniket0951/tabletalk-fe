@@ -6,12 +6,12 @@ const plans = [
   {
     name: PlanName.Starter,
     price: "₹999",
-    desc: "For small restaurants getting started with WhatsApp ordering",
+    desc: "For small restaurants getting started with QR ordering",
     features: [
       "1 restaurant",
       "Dine-In or Walk-In mode",
       "Up to 500 orders/month",
-      "Owner WhatsApp notifications",
+      "Live order dashboard",
     ],
     cta: "Start free trial",
     ctaStyle: "outline" as const,

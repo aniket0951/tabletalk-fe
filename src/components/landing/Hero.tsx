@@ -13,10 +13,10 @@ export default function Hero() {
         <h1 className="mb-5 font-serif text-[clamp(28px,4.5vw,56px)] font-black leading-[1.05] tracking-[-0.03em]">
           Your restaurant,
           <br />
-          orders via <em className="text-accent">WhatsApp.</em>
+          orders via <em className="text-accent">QR code.</em>
         </h1>
         <p className="mx-auto mb-8 max-w-[440px] text-sm leading-[1.7] text-text2 sm:text-base lg:mx-0">
-          Customers scan a QR code, chat with an AI, place orders — you get notified instantly. No app, no waiter, no friction.
+          Customers scan a QR code, browse your menu, and place orders — you get notified instantly on the dashboard. No app, no waiter, no friction.
         </p>
         <div className="flex flex-col items-center gap-[10px] sm:flex-row sm:justify-center lg:justify-start">
           <Link href={ROUTES.AUTH_REGISTER} className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-accent px-[26px] py-3 text-[15px] font-semibold text-white transition-all hover:bg-accent2 sm:w-auto">
@@ -51,27 +51,52 @@ export default function Hero() {
           ✅ Order confirmed!
         </div>
         <div className="mx-auto max-w-[260px] rounded-[28px] bg-text p-[14px] shadow-[0_20px_60px_rgba(0,0,0,.12),0_8px_20px_rgba(0,0,0,.06)] sm:max-w-[280px]">
-          <div className="overflow-hidden rounded-[18px] bg-[#e5ddd5] px-3 py-4">
-            <div className="-mx-3 -mt-4 mb-3 flex items-center gap-2 rounded-t-[10px] bg-accent px-[14px] py-[10px]">
+          <div className="overflow-hidden rounded-[18px] bg-[#f8f7f5]">
+            {/* App header */}
+            <div className="flex items-center gap-2 bg-accent px-[14px] py-[10px]">
               <span className="text-base">🍽</span>
-              <div className="text-xs font-semibold text-white">Saffron House · Table 7</div>
-            </div>
-            <div className="mb-2 flex justify-start">
-              <div className="max-w-[80%] rounded-[0_10px_10px_10px] bg-white px-[10px] py-[7px] text-[11px] leading-[1.5]">Welcome! 🍽 Here&apos;s today&apos;s menu. What would you like?</div>
-            </div>
-            <div className="mb-2 flex justify-end">
-              <div className="max-w-[80%] rounded-[10px_0_10px_10px] bg-[#dcf8c6] px-[10px] py-[7px] text-[11px] leading-[1.5]">1 butter chicken and 2 naans please</div>
-            </div>
-            <div className="mb-2 flex justify-start">
-              <div className="max-w-[80%] rounded-[0_10px_10px_10px] bg-white px-[10px] py-[7px] text-[11px] leading-[1.5]">
-                ✅ Got it!<br />• Butter Chicken ×1 — ₹420<br />• Garlic Naan ×2 — ₹160<br /><strong>Total: ₹580</strong><br />Confirm? Reply YES
+              <div>
+                <div className="text-[11px] font-bold text-white leading-none">Saffron House</div>
+                <div className="text-[9px] text-white/70 mt-[2px]">Table 7</div>
               </div>
             </div>
-            <div className="mb-2 flex justify-end">
-              <div className="max-w-[80%] rounded-[10px_0_10px_10px] bg-[#dcf8c6] px-[10px] py-[7px] text-[11px] leading-[1.5]">yes</div>
+            {/* Category pills */}
+            <div className="flex gap-[6px] overflow-hidden px-3 pt-3 pb-2">
+              {["All", "Starters", "Main", "Breads"].map((cat, i) => (
+                <div key={cat} className={`shrink-0 rounded-full px-[9px] py-[3px] text-[9px] font-semibold ${i === 2 ? "bg-accent text-white" : "bg-white border border-border text-text2"}`}>
+                  {cat}
+                </div>
+              ))}
             </div>
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-[0_10px_10px_10px] bg-white px-[10px] py-[7px] text-[11px] leading-[1.5]">🎉 Order placed! Ready in ~25 mins.</div>
+            {/* Menu items */}
+            <div className="px-3 pb-3 space-y-[7px]">
+              {[
+                { name: "Butter Chicken", price: "₹420", tag: "🔥 Popular", qty: 1 },
+                { name: "Garlic Naan", price: "₹80", tag: null, qty: 2 },
+                { name: "Dal Makhani", price: "₹280", tag: "Chef's pick", qty: 0 },
+              ].map((item) => (
+                <div key={item.name} className="flex items-center justify-between rounded-[10px] bg-white px-[10px] py-[8px] shadow-[0_1px_3px_rgba(0,0,0,.06)]">
+                  <div>
+                    <div className="text-[11px] font-semibold text-text leading-none">{item.name}</div>
+                    {item.tag && <div className="mt-[3px] text-[9px] text-accent font-medium">{item.tag}</div>}
+                    <div className="mt-[3px] text-[10px] font-bold text-text2">{item.price}</div>
+                  </div>
+                  {item.qty > 0 ? (
+                    <div className="flex items-center gap-[5px]">
+                      <div className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">−</div>
+                      <span className="text-[11px] font-bold text-accent">{item.qty}</span>
+                      <div className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">+</div>
+                    </div>
+                  ) : (
+                    <div className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-accent text-[13px] font-bold text-white">+</div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Cart bar */}
+            <div className="mx-3 mb-3 flex items-center justify-between rounded-[10px] bg-accent px-[12px] py-[8px]">
+              <div className="text-[10px] font-semibold text-white/80">3 items · ₹580</div>
+              <div className="text-[10px] font-bold text-white">View Cart →</div>
             </div>
           </div>
         </div>

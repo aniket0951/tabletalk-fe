@@ -144,7 +144,7 @@ export default function SettingsPage() {
                   />
 
                   <label className="mb-[5px] block text-xs font-semibold text-text2">
-                    Owner WhatsApp
+                    Owner Phone
                   </label>
                   <input
                     className="mb-1 w-full rounded-[7px] border-[1.5px] border-border bg-surface px-[11px] py-2 text-[13px] text-text outline-none focus:border-accent"

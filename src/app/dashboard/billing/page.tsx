@@ -22,7 +22,7 @@ const plans = [
     price: "₹999",
     period: "/mo",
     desc: "Getting started",
-    features: ["1 mode · 500 orders/mo", "WhatsApp bot"],
+    features: ["1 mode · 500 orders/mo", "QR ordering"],
     action: "Downgrade",
   },
   {

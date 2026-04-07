@@ -287,7 +287,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 />
               </div>
               <div className="mb-4">
-                <label className="mb-[5px] block text-xs font-semibold text-text2">Phone (WhatsApp) *</label>
+                <label className="mb-[5px] block text-xs font-semibold text-text2">Phone *</label>
                 <input
                   className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm outline-none placeholder:text-text3 focus:border-accent"
                   placeholder="e.g. 9876543210"

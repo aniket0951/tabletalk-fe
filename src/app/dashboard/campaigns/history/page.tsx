@@ -295,15 +295,8 @@ export default function CampaignHistoryPage() {
                       </div>
 
                       {/* Channel breakdown */}
-                      {(detailCampaign.stats.whatsapp !== undefined ||
-                        detailCampaign.stats.sms !== undefined) && (
+                      {detailCampaign.stats.sms !== undefined && (
                         <div className="flex gap-3 text-[11px]">
-                          <span className="text-text3">
-                            WhatsApp:{" "}
-                            <span className="font-semibold text-text2">
-                              {detailCampaign.stats.whatsapp || 0}
-                            </span>
-                          </span>
                           <span className="text-text3">
                             SMS:{" "}
                             <span className="font-semibold text-text2">
