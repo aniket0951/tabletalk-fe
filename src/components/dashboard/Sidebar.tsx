@@ -58,7 +58,7 @@ export default function Sidebar({
 
   function handleLogout() {
     localStorage.clear();
-    router.push(ROUTES.AUTH_LOGIN);
+    router.push("/");
   }
 
   function isActive(href: string) {

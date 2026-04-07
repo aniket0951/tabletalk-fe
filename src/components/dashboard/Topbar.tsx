@@ -27,7 +27,7 @@ export default function Topbar({ title, onAddItem, onMenuToggle, loading }: Topb
 
   function handleLogout() {
     localStorage.clear();
-    router.push(ROUTES.AUTH_LOGIN);
+    router.push("/");
   }
 
   const showSwitcher = plan === "MULTI" && branches.length > 1;
