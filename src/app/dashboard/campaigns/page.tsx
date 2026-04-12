@@ -209,10 +209,9 @@ export default function CampaignsPage() {
                   What are campaigns?
                 </div>
                 <div className="text-xs text-text3 leading-relaxed">
-                  Campaigns let you send promotional messages directly to your
-                  customers via WhatsApp and SMS. Announce discounts, new
-                  dishes, festival offers, or any custom message to bring
-                  customers back.
+                  Campaigns let you send promotional messages via WhatsApp or SMS directly to your
+                  customers. Announce discounts, new dishes, festival offers,
+                  or any custom message to bring customers back.
                 </div>
               </div>
 
@@ -223,12 +222,10 @@ export default function CampaignsPage() {
                 </div>
                 <div className="text-xs text-text3 leading-relaxed">
                   Messages are sent via{" "}
-                  <span className="font-semibold text-text2">
-                    WhatsApp first
-                  </span>
-                  . If a customer isn&apos;t on WhatsApp, we automatically fall
-                  back to <span className="font-semibold text-text2">SMS</span>.
-                  This ensures maximum reach.
+                  <span className="font-semibold text-text2">WhatsApp</span>{" "}
+                  or{" "}
+                  <span className="font-semibold text-text2">SMS</span>.
+                  Customers receive the message directly on their phone — no app needed.
                 </div>
               </div>
 
@@ -466,7 +463,7 @@ export default function CampaignsPage() {
                     </div>
                   </div>
                   <div className="mt-3 rounded-lg bg-amber-bg/50 px-3 py-2 text-[11px] text-amber">
-                    WhatsApp first, SMS fallback for customers without WhatsApp
+                    Delivered via WhatsApp or SMS to all customers
                   </div>
                 </>
               )}

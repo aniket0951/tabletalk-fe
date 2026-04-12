@@ -3,6 +3,7 @@ import { DM_Sans, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
+import { Analytics } from "@vercel/analytics/next";
 
 const dmSans = DM_Sans({
   variable: "--font-sans",
@@ -23,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TableTalk — WhatsApp Ordering for Restaurants",
+  title: "TableTalk — QR Ordering for Restaurants",
   description: "Customers scan a QR code, chat with an AI, place orders — you get notified instantly.",
 };
 
@@ -38,6 +39,7 @@ export default function RootLayout({
         <ToastProvider>
           <OfflineBanner />
           {children}
+          <Analytics />
         </ToastProvider>
       </body>
     </html>

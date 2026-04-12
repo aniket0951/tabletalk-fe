@@ -10,6 +10,8 @@ export interface RestaurantData {
   upiId: string;
   serviceMode: string;
   restaurantCode: string | null;
+  isPrimary: boolean;
+  branchAlias: string;
 }
 
 export const SidebarToggleContext = createContext<() => void>(() => {});
@@ -26,3 +28,15 @@ export function useTrialDays() { return useContext(TrialDaysContext); }
 
 export const RestaurantContext = createContext<RestaurantData | null>(null);
 export function useRestaurant() { return useContext(RestaurantContext); }
+
+export interface BranchSummary {
+  id: string;
+  name: string;
+  city: string;
+  serviceMode: string;
+  isPrimary: boolean;
+  branchAlias: string;
+}
+
+export const BranchesContext = createContext<BranchSummary[]>([]);
+export function useBranches() { return useContext(BranchesContext); }

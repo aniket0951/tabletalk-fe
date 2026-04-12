@@ -19,19 +19,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Desktop nav links */}
-        <div className="hidden items-center gap-7 md:flex">
-          <a className="cursor-pointer text-sm text-text2 transition-colors hover:text-text">
-            Features
-          </a>
-          <a className="cursor-pointer text-sm text-text2 transition-colors hover:text-text">
-            Pricing
-          </a>
-          <a className="cursor-pointer text-sm text-text2 transition-colors hover:text-text">
-            How it works
-          </a>
-        </div>
-
         {/* Desktop CTA */}
         <div className="hidden gap-2 md:flex">
           <Link
@@ -60,11 +47,6 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="border-t border-border px-4 pb-4 pt-3 md:hidden">
-          <div className="flex flex-col gap-3">
-            <a className="cursor-pointer text-sm text-text2">Features</a>
-            <a className="cursor-pointer text-sm text-text2">Pricing</a>
-            <a className="cursor-pointer text-sm text-text2">How it works</a>
-          </div>
           <div className="mt-4 flex gap-2">
             <Link
               href={ROUTES.AUTH_LOGIN}

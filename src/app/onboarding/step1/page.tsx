@@ -80,7 +80,7 @@ export default function OnboardingStep1() {
             Tell us about your restaurant
           </div>
           <div className="text-[13px] leading-[1.6] text-text2">
-            This helps us personalise the WhatsApp bot for your customers.
+            This helps us set up your restaurant on TableTalk.
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export default function OnboardingStep1() {
           </div>
           <div className="mb-4">
             <label className="mb-[5px] block text-xs font-semibold text-text2">
-              Your WhatsApp Number *
+              Your Phone Number *
             </label>
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
