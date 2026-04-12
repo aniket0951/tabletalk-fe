@@ -38,13 +38,24 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on(SOCKET_EVENT.CONNECT, () => setIsConnected(true));
-    socket.on(SOCKET_EVENT.DISCONNECT, () => setIsConnected(false));
-    socket.on(SOCKET_EVENT.CONNECT_ERROR, (err) => {
+    // React Strict Mode runs cleanup+remount once on dev mount.
+    // socket.disconnect() sets socket.active = false and disables auto-reconnect.
+    // Calling connect() here recovers from that cleanup without creating a new socket.
+    if (!socket.active) socket.connect();
+
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+    const handleError = (err: Error) =>
       console.warn("[socket] connection error:", err.message);
-    });
+
+    socket.on(SOCKET_EVENT.CONNECT, handleConnect);
+    socket.on(SOCKET_EVENT.DISCONNECT, handleDisconnect);
+    socket.on(SOCKET_EVENT.CONNECT_ERROR, handleError);
 
     return () => {
+      socket.off(SOCKET_EVENT.CONNECT, handleConnect);
+      socket.off(SOCKET_EVENT.DISCONNECT, handleDisconnect);
+      socket.off(SOCKET_EVENT.CONNECT_ERROR, handleError);
       socket.disconnect();
     };
   }, [socket]);
