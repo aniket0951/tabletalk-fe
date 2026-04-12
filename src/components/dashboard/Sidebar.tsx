@@ -199,7 +199,7 @@ export default function Sidebar({
 
           <div className="px-1">
             <a
-              href="/"
+              href="/?ref=website"
               target="_blank"
               rel="noopener noreferrer"
               className="mb-1 flex w-full items-center justify-start gap-2 rounded-lg bg-transparent px-[11px] py-[5px] text-xs font-semibold text-white/40 transition-all hover:bg-white/[0.07] hover:text-white/70"

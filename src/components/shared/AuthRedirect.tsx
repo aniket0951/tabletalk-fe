@@ -1,17 +1,27 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
 
-export default function AuthRedirect() {
+function AuthRedirectInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const token = localStorage.getItem(STORAGE_KEY.TOKEN);
-    if (token) router.replace(ROUTES.DASHBOARD);
-  }, [router]);
+    const isVisit = searchParams.get("ref") === "website";
+    if (token && !isVisit) router.replace(ROUTES.DASHBOARD);
+  }, [router, searchParams]);
 
   return null;
+}
+
+export default function AuthRedirect() {
+  return (
+    <Suspense fallback={null}>
+      <AuthRedirectInner />
+    </Suspense>
+  );
 }

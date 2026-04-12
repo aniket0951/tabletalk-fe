@@ -51,7 +51,7 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <div className="mx-auto max-w-275 px-4 pb-12 sm:px-6 md:px-12 md:pb-16">
+    <div id="pricing" className="mx-auto max-w-275 px-4 pb-12 sm:px-6 md:px-12 md:pb-16">
       <div className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">
         Pricing
       </div>
