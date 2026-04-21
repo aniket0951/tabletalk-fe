@@ -10,14 +10,14 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-100 border-b border-border bg-[rgba(250,248,244,.92)] backdrop-blur-md">
       <div className="flex items-center justify-between px-4 py-3 sm:px-6 md:px-12 md:py-4.5">
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-base">
             🍽
           </div>
           <div className="font-serif text-xl font-bold tracking-[-0.02em]">
-            TableTalk
+            FoodRasoi
           </div>
-        </div>
+        </Link>
 
         {/* Desktop CTA */}
         <div className="hidden gap-2 md:flex">

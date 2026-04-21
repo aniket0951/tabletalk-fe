@@ -41,7 +41,7 @@ export default function Features() {
   return (
     <div id="features" className="mx-auto max-w-275 px-4 py-12 sm:px-6 md:px-12 md:py-16">
       <div className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">
-        Why TableTalk
+        Why FoodRasoi
       </div>
       <h2 className="mb-3 font-serif text-[clamp(24px,3vw,38px)] font-extrabold leading-[1.15] tracking-[-0.02em]">
         Everything your restaurant needs,

@@ -49,7 +49,7 @@ export default function Hero() {
           </div>
           <div className="text-xs text-text2">
             <strong className="text-text">120+ restaurants</strong> across India
-            using TableTalk
+            using FoodRasoi
           </div>
         </div>
       </div>

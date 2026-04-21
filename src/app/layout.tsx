@@ -24,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TableTalk — QR Ordering for Restaurants",
+  title: "FoodRasoi — QR Ordering for Restaurants",
   description: "Customers scan a QR code, chat with an AI, place orders — you get notified instantly.",
 };
 

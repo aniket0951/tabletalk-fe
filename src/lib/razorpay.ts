@@ -43,7 +43,7 @@ export function openRazorpayCheckout(options: RazorpayCheckoutOptions) {
     order_id: options.razorpayOrderId,
     amount: options.amount,
     currency: options.currency,
-    name: "TableTalk",
+    name: "FoodRasoi",
     description: `Subscription for ${options.name}`,
     prefill: {
       email: options.email,

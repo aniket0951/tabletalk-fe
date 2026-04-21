@@ -86,7 +86,7 @@ export default function Sidebar({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-[9px]">
               <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] bg-accent text-[15px]">🍽</div>
-              <div className="font-serif text-[17px] text-white tracking-[-0.02em]">TableTalk</div>
+              <div className="font-serif text-[17px] text-white tracking-[-0.02em]">FoodRasoi</div>
             </div>
             <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-white/50 hover:text-white md:hidden">✕</button>
           </div>

@@ -57,7 +57,7 @@ export default function RegisterPage() {
           <div className="flex h-[30px] w-[30px] items-center justify-center rounded-[7px] bg-accent text-[15px]">
             🍽
           </div>
-          <div className="font-serif text-lg font-bold">TableTalk</div>
+          <div className="font-serif text-lg font-bold">FoodRasoi</div>
         </div>
         <div className="mb-1.5 text-[22px] font-bold tracking-[-0.02em]">
           Create your account

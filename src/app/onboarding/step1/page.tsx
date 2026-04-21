@@ -80,7 +80,7 @@ export default function OnboardingStep1() {
             Tell us about your restaurant
           </div>
           <div className="text-[13px] leading-[1.6] text-text2">
-            This helps us set up your restaurant on TableTalk.
+            This helps us set up your restaurant on FoodRasoi.
           </div>
         </div>
 
