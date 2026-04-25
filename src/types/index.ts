@@ -1,6 +1,7 @@
 export interface CreateRestaurantReq {
   name: string;
   phone: string;
+  state: string;
   city: string;
   serviceMode: "DINE_IN" | "WALK_IN";
 }

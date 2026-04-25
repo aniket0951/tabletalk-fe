@@ -83,6 +83,12 @@ export async function publicFetch(
   });
 }
 
+// Returns a user-friendly error message — hides internal details for 500s
+export function getApiError(status: number, body: { message?: string }, fallback: string): string {
+  if (status >= 500) return "Something went wrong. Please try again.";
+  return body.message || fallback;
+}
+
 // ── Typed API response helpers ──────────────────────────────
 
 export interface ApiResponse<T> {

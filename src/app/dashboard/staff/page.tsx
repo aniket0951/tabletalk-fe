@@ -6,7 +6,7 @@ import OrderDrawer from "@/components/dashboard/OrderDrawer";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../contexts";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
 import ConfirmModal from "@/components/shared/ConfirmModal";
 import { useStaffList, invalidateStaffCache } from "@/hooks/useStaffList";
@@ -104,7 +104,7 @@ export default function StaffPage() {
         showToast(editingId ? `${name} updated!` : `${name} added!`);
         setEditModal(false);
       } else {
-        setFormError(body.message || "Failed to save staff");
+        setFormError(getApiError(res.status, body, "Failed to save staff"));
       }
     } catch {
       setFormError("Failed to save staff");

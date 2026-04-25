@@ -5,7 +5,7 @@ import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../contexts";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { GridSkeleton } from "@/components/shared/Skeleton";
 import ConfirmModal from "@/components/shared/ConfirmModal";
 import type { ApiOffer, OfferType, DiscountType } from "@/types";
@@ -153,7 +153,7 @@ export default function OffersPage() {
         showToast(editingId ? "Offer updated" : "Offer created");
         setModalOpen(false);
       } else {
-        showToast(body.message || "Failed to save offer");
+        showToast(getApiError(res.status, body, "Failed to save offer"));
       }
     } catch {
       showToast("Failed to save offer");

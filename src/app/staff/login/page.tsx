@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
 import { RequestType } from "@/types/constants";
@@ -49,7 +49,7 @@ export default function StaffLoginPage() {
         localStorage.setItem(STORAGE_KEY.STAFF, JSON.stringify(body.data));
         router.push(ROUTES.STAFF_ORDERS);
       } else {
-        setError(body.message || "Login failed");
+        setError(getApiError(res.status, body, "Login failed"));
       }
     } catch {
       setError("Something went wrong");

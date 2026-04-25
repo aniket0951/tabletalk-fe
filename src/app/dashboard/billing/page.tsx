@@ -8,7 +8,7 @@ import {
   useSubscriptionStatus,
   useTrialDays,
 } from "../contexts";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import { useToast } from "@/contexts/ToastContext";
 import ConfirmModal from "@/components/shared/ConfirmModal";
@@ -81,7 +81,7 @@ export default function BillingPage() {
 
       if (!res.ok) {
         const body = await res.json();
-        showToast(body.message || "Checkout failed");
+        showToast(getApiError(res.status, body, "Checkout failed"));
         setCheckoutLoading(null);
         return;
       }
@@ -136,7 +136,7 @@ export default function BillingPage() {
         window.location.reload();
       } else {
         const body = await res.json();
-        showToast(body.message || "Failed to cancel");
+        showToast(getApiError(res.status, body, "Failed to cancel"));
       }
     } catch {
       showToast("Something went wrong.");

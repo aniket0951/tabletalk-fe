@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { SocketProvider, useSocket } from "@/contexts/SocketContext";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { cachedFetch, TTL } from "@/lib/cache";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { SOCKET_EVENT } from "@/lib/events";
@@ -191,7 +191,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("cache_subscription");
         window.location.reload();
       } else {
-        setAddBranchError(body.message || "Failed to create branch");
+        setAddBranchError(getApiError(res.status, body, "Failed to create branch"));
       }
     } catch {
       setAddBranchError("Failed to create branch");

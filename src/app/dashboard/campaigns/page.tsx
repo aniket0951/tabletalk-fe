@@ -7,7 +7,7 @@ import Topbar from "@/components/dashboard/Topbar";
 import { useToast } from "@/contexts/ToastContext";
 import { useSidebarToggle } from "../contexts";
 import { useSubscriptionGate } from "@/components/shared/SubscriptionGate";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import type {
   ApiCampaign,
@@ -92,7 +92,7 @@ export default function CampaignsPage() {
       });
       if (!res.ok) {
         const body = await res.json();
-        showToast(body.message || "Failed to create campaign");
+        showToast(getApiError(res.status, body, "Failed to create campaign"));
         setSaving(false);
         return;
       }
@@ -117,7 +117,7 @@ export default function CampaignsPage() {
       });
       if (!res.ok) {
         const body = await res.json();
-        showToast(body.debug_message || body.message || "Checkout failed");
+        showToast(getApiError(res.status, body, "Checkout failed"));
         setPaying(false);
         return;
       }

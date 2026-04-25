@@ -98,21 +98,6 @@ export default function LoginPage() {
           Sign in to your restaurant dashboard.
         </div>
 
-        <button className="flex w-full items-center justify-center gap-2 rounded-lg border-[1.5px] border-border bg-surface px-[10px] py-[10px] text-sm font-medium text-text transition-all hover:bg-surface2">
-          <img
-            src="https://www.google.com/favicon.ico"
-            width={16}
-            height={16}
-            alt="Google"
-          />
-          Continue with Google
-        </button>
-
-        <div className="my-5 flex items-center gap-3 text-xs text-text3">
-          <div className="h-px flex-1 bg-border" />
-          or
-          <div className="h-px flex-1 bg-border" />
-        </div>
 
         <form onSubmit={handleSubmit}>
           {error && (
@@ -171,27 +156,6 @@ export default function LoginPage() {
         </div>
 
         {/* Demo shortcuts */}
-        <div className="mt-4 rounded-lg border border-border bg-surface2 p-3 text-center">
-          <div className="mb-1.5 text-[11px] text-text3">Demo shortcuts</div>
-          <div className="flex flex-wrap justify-center gap-[7px]">
-            <button
-              onClick={() => demoLogin("subscribed")}
-              disabled={demoLoading !== null}
-              className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface disabled:opacity-50"
-            >
-              {demoLoading === "subscribed"
-                ? "Loading..."
-                : "✅ With subscription"}
-            </button>
-            <button
-              onClick={() => demoLogin("noSub")}
-              disabled={demoLoading !== null}
-              className="rounded-[7px] border border-border2 bg-transparent px-[11px] py-[5px] text-xs font-semibold text-text transition-all hover:bg-surface disabled:opacity-50"
-            >
-              {demoLoading === "noSub" ? "Loading..." : "❌ No subscription"}
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

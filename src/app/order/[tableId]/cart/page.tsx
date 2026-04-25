@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useTableInfo } from "../layout";
-import { publicFetch } from "@/lib/api";
+import { publicFetch, getApiError } from "@/lib/api";
 import { orderStatusRoute } from "@/lib/routes";
 import type { ApiOrder, PublicOffer } from "@/types";
 import { RequestType } from "@/types/constants";
@@ -33,6 +33,9 @@ export default function CartPage({
   const [offers, setOffers] = useState<PublicOffer[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [promoInput, setPromoInput] = useState("");
+  const [promoError, setPromoError] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [validatedDiscount, setValidatedDiscount] = useState<{ amount: number; label: string } | null>(null);
 
   // Fetch existing order details when in add-to mode (to get phone)
   useEffect(() => {
@@ -56,54 +59,33 @@ export default function CartPage({
       .catch(() => {});
   }, [tableInfo?.restaurant.id]);
 
-  // Calculate best applicable discount client-side for display
+  // Server-validated promo discount takes priority; fallback to client-side for auto-apply offers
   const discount = (() => {
+    if (validatedDiscount) return validatedDiscount;
     if (offers.length === 0 || subtotal === 0) return { amount: 0, label: "" };
 
     const now = new Date();
-    const eligible = offers.filter((o) => {
-      if (o.startDate && now < new Date(o.startDate)) return false;
-      if (o.endDate && now > new Date(o.endDate)) return false;
-      if (o.daysOfWeek.length > 0 && !o.daysOfWeek.includes(now.getDay()))
-        return false;
-      if (
-        o.requiresCode &&
-        (!promoCode || promoCode.toUpperCase() !== promoCode)
-      )
-        return false;
-      return true;
-    });
-
-    // Best bill discount
-    const billOffers = eligible.filter(
-      (o) =>
-        (o.type === "BILL_DISCOUNT" && !o.requiresCode) ||
-        (o.requiresCode && promoCode),
-    );
     let bestDisc = 0;
     let bestLabel = "";
 
-    for (const o of billOffers) {
-      if (o.requiresCode && !promoCode) continue;
+    for (const o of offers) {
+      if (o.requiresCode) continue; // code offers handled by validate-promo API
+      if (o.type !== "BILL_DISCOUNT") continue;
+      if (o.startDate && now < new Date(o.startDate)) continue;
+      if (o.endDate && now > new Date(o.endDate)) continue;
+      if (o.daysOfWeek.length > 0 && !o.daysOfWeek.includes(now.getDay())) continue;
       if (o.minOrderAmount != null && subtotal < o.minOrderAmount) continue;
 
-      let d =
-        o.discountType === "PERCENTAGE"
-          ? Math.round(subtotal * (o.discountValue / 100) * 100) / 100
-          : o.discountValue;
-
-      if (o.discountType === "PERCENTAGE" && o.minOrderAmount == null) {
-        // no cap needed beyond maxDiscount
-      }
+      let d = o.discountType === "PERCENTAGE"
+        ? Math.round(subtotal * (o.discountValue / 100) * 100) / 100
+        : o.discountValue;
       if (d > subtotal) d = subtotal;
 
       if (d > bestDisc) {
         bestDisc = d;
-        bestLabel =
-          o.discountType === "PERCENTAGE"
-            ? `${o.discountValue}% off on bill`
-            : `₹${o.discountValue} off on bill`;
-        if (o.requiresCode) bestLabel += ` (${promoCode})`;
+        bestLabel = o.discountType === "PERCENTAGE"
+          ? `${o.discountValue}% off on bill`
+          : `₹${o.discountValue} off on bill`;
       }
     }
 
@@ -112,6 +94,52 @@ export default function CartPage({
 
   const tax = Math.round(subtotal * 0.05 * 100) / 100;
   const total = Math.round((subtotal - discount.amount + tax) * 100) / 100;
+
+  // Clear validated promo when cart items change (subtotal changed, need re-validation)
+  useEffect(() => {
+    setPromoCode("");
+    setValidatedDiscount(null);
+    setPromoError("");
+  }, [items]);
+
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code || !tableInfo?.restaurant.id) return;
+
+    setPromoLoading(true);
+    setPromoError("");
+
+    try {
+      const res = await publicFetch("/public/validate-promo", {
+        method: "POST",
+        body: JSON.stringify({
+          restaurantId: tableInfo.restaurant.id,
+          promoCode: code,
+          subtotal,
+        }),
+      });
+
+      const body = await res.json();
+      const data = body.data;
+
+      if (!res.ok || !data?.valid) {
+        setPromoError(data?.message || "Invalid promo code");
+        setPromoCode("");
+        setValidatedDiscount(null);
+      } else {
+        setPromoCode(code);
+        setValidatedDiscount(
+          data.discountAmount != null
+            ? { amount: data.discountAmount, label: `${data.description} (${code})` }
+            : { amount: 0, label: `${data.description} (${code})` },
+        );
+      }
+    } catch {
+      setPromoError("Could not validate code. Please try again.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }
 
   async function placeOrder() {
     if (!addToOrderId && !phone.trim()) {
@@ -162,7 +190,7 @@ export default function CartPage({
         } else if (body.code === "ORDER_NOT_ADDABLE") {
           setOrderError(body.message);
         } else {
-          showToast(body.message || "Failed to place order");
+          showToast(getApiError(res.status, body, "Failed to place order"));
         }
         setPlacing(false);
         return;
@@ -325,34 +353,50 @@ export default function CartPage({
           <label className="mb-1 block text-xs font-semibold text-text2">
             Promo Code
           </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={promoInput}
-              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-              placeholder="Enter promo code"
-              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm uppercase outline-none placeholder:text-text3 placeholder:normal-case focus:border-accent"
-            />
-            <button
-              onClick={() => setPromoCode(promoInput.trim())}
-              className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent2"
-            >
-              Apply
-            </button>
-          </div>
-          {promoCode && (
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-green-mid">
-              <span>Code &quot;{promoCode}&quot; applied</span>
+          {promoCode ? (
+            <div className="flex items-center justify-between rounded-lg border border-green-mid bg-[rgba(34,197,94,.06)] px-3 py-2">
+              <span className="font-mono text-xs font-semibold text-green-mid">
+                &quot;{promoCode}&quot; applied
+              </span>
               <button
                 onClick={() => {
                   setPromoCode("");
                   setPromoInput("");
+                  setPromoError("");
+                  setValidatedDiscount(null);
                 }}
-                className="text-red underline"
+                className="text-[11px] text-red underline"
               >
                 Remove
               </button>
             </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={(e) => {
+                    setPromoInput(e.target.value.toUpperCase());
+                    setPromoError("");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && applyPromo()}
+                  placeholder="Enter promo code"
+                  disabled={promoLoading}
+                  className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm uppercase outline-none placeholder:text-text3 placeholder:normal-case focus:border-accent disabled:opacity-50"
+                />
+                <button
+                  onClick={applyPromo}
+                  disabled={promoLoading || !promoInput.trim()}
+                  className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent2 disabled:opacity-50"
+                >
+                  {promoLoading ? "Checking..." : "Apply"}
+                </button>
+              </div>
+              {promoError && (
+                <div className="mt-1 text-[11px] text-red">{promoError}</div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -1,22 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, publicFetch } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
 import type { CreateRestaurantReq } from "@/types";
 import { RequestType } from "@/types/constants";
 
+interface State {
+  code: string;
+  name: string;
+}
+
 export default function OnboardingStep1() {
   const router = useRouter();
   const [restName, setRestName] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
   const [mode, setMode] = useState<"dinein" | "walkin">("dinein");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [states, setStates] = useState<State[]>([]);
+  const [selectedState, setSelectedState] = useState("");
+  const [cities, setCities] = useState<string[]>([]);
+  const [selectedCity, setSelectedCity] = useState("");
+  const [citiesLoading, setCitiesLoading] = useState(false);
+
+  useEffect(() => {
+    publicFetch("/public/states")
+      .then((r) => r.json())
+      .then((body) => setStates(body.data || []))
+      .catch(() => {});
+  }, []);
+
+  async function handleStateChange(code: string) {
+    setSelectedState(code);
+    setSelectedCity("");
+    setCities([]);
+    if (!code) return;
+    setCitiesLoading(true);
+    try {
+      const res = await publicFetch(`/public/states/${code}/cities`);
+      const body = await res.json();
+      setCities(body.data || []);
+    } catch {
+      setCities([]);
+    } finally {
+      setCitiesLoading(false);
+    }
+  }
 
   async function handleNext() {
     setError("");
@@ -31,7 +65,8 @@ export default function OnboardingStep1() {
     const body: CreateRestaurantReq = {
       name: restName,
       phone,
-      city,
+      state: selectedState,
+      city: selectedCity,
       serviceMode: mode === "dinein" ? "DINE_IN" : "WALK_IN",
     };
 
@@ -44,16 +79,15 @@ export default function OnboardingStep1() {
       if (!res.ok) {
         const errBody = await res.json();
         setError(
-          errBody.debug_message ||
-            errBody.message ||
-            "Failed to create restaurant",
+          res.status === 500
+            ? "Something went wrong. Please try again."
+            : errBody.message || "Failed to create restaurant",
         );
         setLoading(false);
         return;
       }
 
       const resBody = await res.json();
-      // Save new token with restaurantId
       if (resBody.data.token)
         localStorage.setItem(STORAGE_KEY.TOKEN, resBody.data.token);
 
@@ -63,6 +97,9 @@ export default function OnboardingStep1() {
       setLoading(false);
     }
   }
+
+  const selectClass =
+    "w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)] disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-5">
@@ -90,6 +127,7 @@ export default function OnboardingStep1() {
               {error}
             </div>
           )}
+
           <div className="mb-4">
             <label className="mb-[5px] block text-xs font-semibold text-text2">
               Restaurant Name *
@@ -101,6 +139,7 @@ export default function OnboardingStep1() {
               onChange={(e) => setRestName(e.target.value)}
             />
           </div>
+
           <div className="mb-4">
             <label className="mb-[5px] block text-xs font-semibold text-text2">
               Your Phone Number *
@@ -108,6 +147,7 @@ export default function OnboardingStep1() {
             <input
               className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
               placeholder="+91 98765 43210"
+              maxLength={10}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
@@ -115,17 +155,51 @@ export default function OnboardingStep1() {
               New orders will be sent here
             </div>
           </div>
-          <div className="mb-4">
-            <label className="mb-[5px] block text-xs font-semibold text-text2">
-              City
-            </label>
-            <input
-              className="w-full rounded-lg border-[1.5px] border-border bg-surface px-3 py-[9px] text-sm text-text outline-none placeholder:text-text3 focus:border-accent focus:shadow-[0_0_0_3px_rgba(212,82,42,.1)]"
-              placeholder="e.g. Pune, Maharashtra"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-            />
+
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-[5px] block text-xs font-semibold text-text2">
+                State
+              </label>
+              <select
+                className={selectClass}
+                value={selectedState}
+                onChange={(e) => handleStateChange(e.target.value)}
+              >
+                <option value="">Select state</option>
+                {states.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-[5px] block text-xs font-semibold text-text2">
+                City
+              </label>
+              <select
+                className={selectClass}
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                disabled={!selectedState || citiesLoading}
+              >
+                <option value="">
+                  {citiesLoading
+                    ? "Loading..."
+                    : !selectedState
+                      ? "Select state first"
+                      : "Select city"}
+                </option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
           <div>
             <label className="mb-[5px] block text-xs font-semibold text-text2">
               Service Mode *

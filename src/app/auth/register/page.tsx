@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { STORAGE_KEY } from "@/lib/storage-keys";
 import { ROUTES } from "@/lib/routes";
 import { RequestType } from "@/types/constants";
@@ -15,7 +15,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     const token = localStorage.getItem(STORAGE_KEY.TOKEN);
     if (token) router.replace(ROUTES.DASHBOARD);
@@ -34,7 +33,7 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const body = await res.json();
-        setError(body.message || "Registration failed");
+        setError(getApiError(res.status, body, "Registration failed"));
         setLoading(false);
         return;
       }
@@ -66,21 +65,6 @@ export default function RegisterPage() {
           Start your 14-day free trial. No credit card required.
         </div>
 
-        <button className="flex w-full items-center justify-center gap-2 rounded-lg border-[1.5px] border-border bg-surface px-[10px] py-[10px] text-sm font-medium text-text transition-all hover:bg-surface2">
-          <img
-            src="https://www.google.com/favicon.ico"
-            width={16}
-            height={16}
-            alt="Google"
-          />
-          Continue with Google
-        </button>
-
-        <div className="my-5 flex items-center gap-3 text-xs text-text3">
-          <div className="h-px flex-1 bg-border" />
-          or
-          <div className="h-px flex-1 bg-border" />
-        </div>
 
         <form onSubmit={handleSubmit}>
           {error && (
@@ -146,8 +130,8 @@ export default function RegisterPage() {
         </div>
         <div className="mt-[14px] text-center text-[11px] leading-[1.6] text-text3">
           By creating an account you agree to our{" "}
-          <a className="cursor-pointer text-accent">Terms</a> and{" "}
-          <a className="cursor-pointer text-accent">Privacy Policy</a>.
+          <Link href="/terms" className="text-accent hover:underline">Terms</Link> and{" "}
+          <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ import {
   useSubscriptionStatus,
 } from "@/app/dashboard/contexts";
 import { useToast } from "@/contexts/ToastContext";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { loadRazorpay, openRazorpayCheckout } from "@/lib/razorpay";
 import type { CheckoutResponse, PlanType } from "@/types";
 import { PlanName, RequestType, SubscriptionStatus } from "@/types/constants";
@@ -106,7 +106,7 @@ export function useSubscriptionGate(): SubscriptionGateResult {
 
       if (!res.ok) {
         const body = await res.json();
-        showToast(body.message || "Checkout failed");
+        showToast(getApiError(res.status, body, "Checkout failed"));
         setLoading(false);
         return;
       }

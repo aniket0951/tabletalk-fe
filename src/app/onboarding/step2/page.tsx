@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiError } from "@/lib/api";
 import { PlanName, RequestType } from "@/types/constants";
 
 const plans = [
@@ -52,7 +52,7 @@ export default function OnboardingStep2() {
 
       if (!res.ok) {
         const body = await res.json();
-        setError(body.message || "Failed to create subscription");
+        setError(getApiError(res.status, body, "Failed to create subscription"));
         setLoading(false);
         return;
       }
