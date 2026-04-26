@@ -39,7 +39,7 @@ function getStepTimestamp(order: ApiOrder, step: OrderStatus): string | null {
 async function downloadReceipt(order: ApiOrder) {
   const { jsPDF } = await import("jspdf");
 
-  const doc = new jsPDF({ unit: "mm", format: [80, 200] }); // receipt-width PDF
+  const doc = new jsPDF({ unit: "mm", format: [80, 200] });
   const w = 80;
   const margin = 6;
   const contentW = w - margin * 2;
@@ -47,6 +47,9 @@ async function downloadReceipt(order: ApiOrder) {
 
   const restaurantName = order.restaurant?.name || "Restaurant";
   const restaurantPhone = order.restaurant?.phone || "";
+  const addressLine = [order.restaurant?.city, order.restaurant?.state]
+    .filter(Boolean)
+    .join(", ");
   const date = new Date(order.placedAt).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -57,11 +60,17 @@ async function downloadReceipt(order: ApiOrder) {
     minute: "2-digit",
   });
 
-  // Header
+  // ── Restaurant header ──────────────────────────
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.text(restaurantName, w / 2, y, { align: "center" });
   y += 5;
+  if (addressLine) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(addressLine, w / 2, y, { align: "center" });
+    y += 4;
+  }
   if (restaurantPhone) {
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
@@ -69,75 +78,84 @@ async function downloadReceipt(order: ApiOrder) {
     y += 4;
   }
 
-  // Divider
-  doc.setLineWidth(0.4);
+  // ── Order info ─────────────────────────────────
+  y += 1;
+  doc.setLineDashPattern([1, 1], 0);
   doc.line(margin, y, w - margin, y);
+  doc.setLineDashPattern([], 0);
   y += 5;
 
-  // Order meta
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  const meta = [
-    `Order: ${order.orderCode}`,
-    `Table: ${order.table.label}`,
-    `Date: ${date}  ${time}`,
+  const meta: [string, string][] = [
+    ["Order", order.orderCode],
+    ["Table", order.table.label],
+    ["Date", `${date}  ${time}`],
   ];
-  if (order.customerName) meta.push(`Name: ${order.customerName}`);
-  if (order.customerPhone) meta.push(`Phone: ${order.customerPhone}`);
-  for (const line of meta) {
-    doc.text(line, margin, y);
+  if (order.customerName) meta.push(["Customer", order.customerName]);
+  if (order.customerPhone) meta.push(["Phone", order.customerPhone]);
+  for (const [label, value] of meta) {
+    doc.setFont("helvetica", "normal");
+    doc.text(label, margin, y);
+    doc.setFont("helvetica", "bold");
+    doc.text(value, w - margin, y, { align: "right" });
     y += 4;
   }
 
-  // Dashed divider
+  // ── Items header ───────────────────────────────
   y += 1;
   doc.setLineDashPattern([1, 1], 0);
   doc.line(margin, y, w - margin, y);
   doc.setLineDashPattern([], 0);
   y += 4;
 
-  // Table header
   doc.setFontSize(7);
   doc.setFont("helvetica", "bold");
   doc.text("ITEM", margin, y);
-  doc.text("QTY", margin + contentW * 0.65, y, { align: "center" });
+  doc.text("QTY", margin + contentW * 0.58, y, { align: "center" });
+  doc.text("RATE", margin + contentW * 0.78, y, { align: "right" });
   doc.text("AMT", w - margin, y, { align: "right" });
   y += 2;
   doc.setLineWidth(0.3);
   doc.line(margin, y, w - margin, y);
   y += 4;
 
-  // Items
+  // ── Items ──────────────────────────────────────
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   for (const item of order.items) {
     const name =
-      item.menuItem.name.length > 22
-        ? item.menuItem.name.slice(0, 22) + "..."
+      item.menuItem.name.length > 20
+        ? item.menuItem.name.slice(0, 20) + "..."
         : item.menuItem.name;
-    const amt = (item.unitPrice * item.quantity).toFixed(2);
     doc.text(name, margin, y);
-    doc.text(String(item.quantity), margin + contentW * 0.65, y, {
-      align: "center",
-    });
-    doc.text(amt, w - margin, y, { align: "right" });
-    y += 4.5;
+    doc.text(String(item.quantity), margin + contentW * 0.58, y, { align: "center" });
+    doc.text(item.unitPrice.toFixed(2), margin + contentW * 0.78, y, { align: "right" });
+    doc.text((item.unitPrice * item.quantity).toFixed(2), w - margin, y, { align: "right" });
+    y += 5;
   }
 
-  // Totals divider
+  // ── Totals ─────────────────────────────────────
   y += 1;
   doc.setLineWidth(0.4);
   doc.line(margin, y, w - margin, y);
   y += 5;
 
-  // Totals
   doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
   doc.text("Subtotal", margin, y);
-  doc.text(order.subtotal.toFixed(2), w - margin, y, { align: "right" });
+  doc.text(`Rs. ${order.subtotal.toFixed(2)}`, w - margin, y, { align: "right" });
   y += 4;
+
+  if (order.discount > 0) {
+    doc.text("Discount", margin, y);
+    doc.text(`-Rs. ${order.discount.toFixed(2)}`, w - margin, y, { align: "right" });
+    y += 4;
+  }
+
   doc.text("GST (5%)", margin, y);
-  doc.text(order.tax.toFixed(2), w - margin, y, { align: "right" });
-  y += 2;
+  doc.text(`Rs. ${order.tax.toFixed(2)}`, w - margin, y, { align: "right" });
+  y += 3;
   doc.setLineDashPattern([1, 1], 0);
   doc.line(margin, y, w - margin, y);
   doc.setLineDashPattern([], 0);
@@ -145,11 +163,11 @@ async function downloadReceipt(order: ApiOrder) {
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("Total", margin, y);
+  doc.text("TOTAL", margin, y);
   doc.text(`Rs. ${order.total.toFixed(2)}`, w - margin, y, { align: "right" });
-  y += 7;
+  y += 8;
 
-  // Footer
+  // ── Footer ─────────────────────────────────────
   doc.setLineWidth(0.4);
   doc.line(margin, y, w - margin, y);
   y += 5;
@@ -158,7 +176,12 @@ async function downloadReceipt(order: ApiOrder) {
   doc.text("Thank you for dining with us!", w / 2, y, { align: "center" });
   y += 4;
   doc.setFontSize(7);
-  doc.text("Pay at table", w / 2, y, { align: "center" });
+  doc.text("Pay at the table when you're ready", w / 2, y, { align: "center" });
+  y += 4;
+  doc.setFontSize(6);
+  doc.setTextColor(160, 160, 160);
+  doc.text("Powered by FoodRasoi", w / 2, y, { align: "center" });
+  doc.setTextColor(0, 0, 0);
 
   // Trim page height to content
   const pageHeight = y + 8;
@@ -348,22 +371,125 @@ export default function OrderStatusPage({
         </div>
       </div>
 
-      {/* Items summary */}
-      <div className="mb-4 rounded-[10px] border border-border bg-surface p-3">
-        <div className="mb-2 text-xs font-semibold text-text2">Items</div>
-        {order.items.map((item) => (
-          <div key={item.id} className="flex justify-between py-1 text-sm">
-            <span>
-              {item.menuItem.name} × {item.quantity}
-            </span>
-            <span className="text-text2">
-              ₹{(item.unitPrice * item.quantity).toFixed(2)}
-            </span>
+      {/* Receipt */}
+      <div className="mb-4 overflow-hidden rounded-[10px] border border-border bg-surface">
+        {/* Restaurant header */}
+        <div className="border-b border-dashed border-border bg-accent-bg px-4 py-4 text-center">
+          <div className="text-[15px] font-bold">
+            {order.restaurant?.name || "Restaurant"}
           </div>
-        ))}
-        <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm font-bold">
-          <span>Total</span>
-          <span className="text-accent">₹{order.total.toFixed(2)}</span>
+          {(order.restaurant?.city || order.restaurant?.state) && (
+            <div className="mt-0.5 text-xs text-text2">
+              {[order.restaurant.city, order.restaurant.state]
+                .filter(Boolean)
+                .join(", ")}
+            </div>
+          )}
+          {order.restaurant?.phone && (
+            <div className="mt-0.5 font-mono text-xs text-text3">
+              {order.restaurant.phone}
+            </div>
+          )}
+        </div>
+
+        {/* Order meta */}
+        <div className="border-b border-dashed border-border px-4 py-3">
+          <div className="grid grid-cols-2 gap-y-1 text-xs">
+            <span className="text-text3">Order</span>
+            <span className="text-right font-mono font-semibold">
+              {order.orderCode}
+            </span>
+            <span className="text-text3">Table</span>
+            <span className="text-right font-semibold">{order.table.label}</span>
+            <span className="text-text3">Date & Time</span>
+            <span className="text-right">
+              {new Date(order.placedAt).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}{" "}
+              ·{" "}
+              {new Date(order.placedAt).toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            {order.customerName && (
+              <>
+                <span className="text-text3">Customer</span>
+                <span className="text-right">{order.customerName}</span>
+              </>
+            )}
+            {order.customerPhone && (
+              <>
+                <span className="text-text3">Phone</span>
+                <span className="text-right font-mono">{order.customerPhone}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Items */}
+        <div className="border-b border-dashed border-border px-4 py-3">
+          <div className="mb-2 grid grid-cols-[1fr_auto_auto] gap-x-3 text-[10px] font-bold uppercase tracking-wide text-text3">
+            <span>Item</span>
+            <span className="text-center">Qty</span>
+            <span className="text-right">Amt</span>
+          </div>
+          <div className="space-y-2.5">
+            {order.items.map((item) => (
+              <div key={item.id} className="grid grid-cols-[1fr_auto_auto] gap-x-3">
+                <div>
+                  <div className="text-sm font-medium">{item.menuItem.name}</div>
+                  <div className="text-[11px] text-text3">
+                    ₹{item.unitPrice.toFixed(2)} each
+                  </div>
+                </div>
+                <div className="self-center text-center text-sm text-text2">
+                  {item.quantity}
+                </div>
+                <div className="self-center text-right font-mono text-sm">
+                  ₹{(item.unitPrice * item.quantity).toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Totals */}
+        <div className="px-4 py-3">
+          <div className="space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-text2">Subtotal</span>
+              <span className="font-mono">₹{order.subtotal.toFixed(2)}</span>
+            </div>
+            {order.discount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-green-mid">Discount</span>
+                <span className="font-mono text-green-mid">
+                  −₹{order.discount.toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-text2">GST (5%)</span>
+              <span className="font-mono">₹{order.tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-2 font-bold">
+              <span>Total</span>
+              <span className="font-mono text-accent">
+                ₹{order.total.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-dashed border-border px-4 py-3 text-center">
+          <div className="text-xs text-text2">Thank you for dining with us!</div>
+          <div className="mt-0.5 text-[11px] text-text3">
+            Pay at the table when you&apos;re ready
+          </div>
         </div>
       </div>
 
